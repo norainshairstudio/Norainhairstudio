@@ -142,6 +142,31 @@ function renderTodaySummary() {
     });
 }
 
+function renderAllRequests(filterDate = null) {
+    const allRequestsPanel = document.getElementById('all-requests-panel');
+    const allRequestsList = document.getElementById('all-requests-list');
+    const dateFilter = filterDate ? new Date(filterDate).toISOString().split('T')[0] : null;
+    const filtered = dateFilter ? appointments.filter(a => a.date === dateFilter) : appointments;
+
+    allRequestsList.innerHTML = '';
+    if (filtered.length === 0) {
+        allRequestsList.innerHTML = '<div class="detail-card"><p>No requests found for the selected date.</p></div>';
+        return;
+    }
+
+    filtered.sort((a, b) => new Date(a.date) - new Date(b.date) || a.time.localeCompare(b.time));
+    filtered.forEach(request => {
+        const card = document.createElement('div');
+        card.className = 'request-card';
+        card.innerHTML = `
+            <div class="meta"><span>${formatFullDate(new Date(request.date))}</span><span>${formatTimeDisplay(request.time)}</span></div>
+            <h3>${request.service}</h3>
+            <p>${request.name} • ${request.phone}</p>
+            <p>Status: <strong>${request.status}</strong></p>`;
+        allRequestsList.appendChild(card);
+    });
+}
+
 function renderRequestList() {
     const requestList = document.getElementById('request-list');
     requestList.innerHTML = '';
@@ -195,6 +220,7 @@ async function initializeAdmin() {
     await loadAppointments();
     renderStats();
     renderRequestList();
+    renderAllRequests();
     renderTodaySummary();
     renderDayDetail();
     document.getElementById('current-day').textContent = formatFullDate(currentDay);
@@ -218,6 +244,24 @@ async function initializeAdmin() {
         document.getElementById('password-modal').classList.add('hidden');
         document.getElementById('password-form').reset();
         document.getElementById('password-message').textContent = '';
+    });
+
+    document.getElementById('view-all-btn').addEventListener('click', () => {
+        const panel = document.getElementById('all-requests-panel');
+        panel.classList.toggle('hidden');
+        if (!panel.classList.contains('hidden')) {
+            renderAllRequests();
+        }
+    });
+
+    document.getElementById('filter-date-btn').addEventListener('click', () => {
+        const filterDate = document.getElementById('filter-date').value;
+        renderAllRequests(filterDate || null);
+    });
+
+    document.getElementById('clear-filter-btn').addEventListener('click', () => {
+        document.getElementById('filter-date').value = '';
+        renderAllRequests();
     });
 
     document.getElementById('password-form').addEventListener('submit', async (e) => {

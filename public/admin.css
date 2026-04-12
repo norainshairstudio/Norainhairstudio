@@ -166,6 +166,43 @@ body {
     font-size: 1.1rem;
 }
 
+.all-requests-btn {
+    width: 100%;
+    margin-top: 10px;
+}
+
+.all-requests-panel {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 22px;
+    padding: 18px;
+    box-shadow: var(--shadow-soft);
+    margin-top: 16px;
+}
+
+.all-requests-panel.hidden {
+    display: none;
+}
+
+.all-requests-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.all-requests-toolbar label {
+    font-weight: 600;
+}
+
+.all-requests-toolbar input[type="date"] {
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--surface-strong);
+}
+
 .request-card,
 .appointment-card,
 .detail-card {

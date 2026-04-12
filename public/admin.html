@@ -35,6 +35,16 @@
                     <h3>Today's Appointments</h3>
                     <div id="today-list" class="today-list"></div>
                 </div>
+                <button id="view-all-btn" class="action-btn all-requests-btn">View All Requests</button>
+                <div class="all-requests-panel hidden" id="all-requests-panel">
+                    <div class="all-requests-toolbar">
+                        <label for="filter-date">Filter by date:</label>
+                        <input type="date" id="filter-date">
+                        <button id="filter-date-btn" class="action-btn">Show</button>
+                        <button id="clear-filter-btn" class="reject-btn">Clear</button>
+                    </div>
+                    <div id="all-requests-list" class="request-list"></div>
+                </div>
                 <div class="request-list" id="request-list"></div>
             </aside>
 
