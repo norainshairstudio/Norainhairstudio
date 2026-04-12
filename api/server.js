@@ -10,17 +10,15 @@ const PORT = process.env.PORT || 3000;
 const SECRET = process.env.SESSION_SECRET || 'norain_secret_key';
 const AUTH_COOKIE = 'admin-auth';
 
-// Twilio credentials (replace with your own for real sending)
 const accountSid = process.env.TWILIO_ACCOUNT_SID || 'your_twilio_account_sid';
 const authToken = process.env.TWILIO_AUTH_TOKEN || 'your_twilio_auth_token';
 let twilioClient = null;
-let twilioWhatsAppNumber = 'whatsapp:+14155238886'; // Twilio sandbox number
+let twilioWhatsAppNumber = 'whatsapp:+14155238886'; 
 
 if (accountSid !== 'your_twilio_account_sid' && authToken !== 'your_twilio_auth_token') {
     twilioClient = twilio(accountSid, authToken);
 }
 
-// Admin credentials
 const ADMIN_USERNAME = 'norainhairsalon';
 let ADMIN_PASSWORD_HASH = bcrypt.hashSync('norainadmin123', 10);
 
@@ -59,16 +57,14 @@ app.use((req, res, next) => {
     next();
 });
 
-// --- VERCEL FIX: In-Memory Database ---
-// Vercel par file save nahi hoti, is liye hum data memory mein rakhenge
 let memoryAppointments = null;
 const APPOINTMENTS_FILE = path.join(process.cwd(), 'appointments.json');
 
-async function loadAppointments() {
-  // Agar memory mein data hai to seedha wahi bhej do
-  if (memoryAppointments) return memoryAppointments;
+// Achanak chutti wali dates yahan save hongi
+let closedDates = []; 
 
-  // Pehli dafa file se parho
+async function loadAppointments() {
+  if (memoryAppointments) return memoryAppointments;
   try {
     const data = await fs.readFile(APPOINTMENTS_FILE, 'utf8');
     memoryAppointments = JSON.parse(data);
@@ -80,46 +76,28 @@ async function loadAppointments() {
 }
 
 async function saveAppointments(appointments) {
-  // Data ko memory mein update kar do (Vercel isay yaad rakhega)
   memoryAppointments = appointments;
-
-  // Local computer ke liye file mein bhi likh do
   try {
     await fs.writeFile(APPOINTMENTS_FILE, JSON.stringify(appointments, null, 2));
   } catch (err) {
-    // Vercel yahan fail hoga lekin humara system chalta rahega qk data memory mein hai
     console.log("Vercel read-only mode: Data saved in memory instead of file.");
   }
 }
-// ---------------------------------------
 
 // Routes
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
-});
-
-app.get('/login', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
+app.get('/login', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'login.html')));
 
 app.get('/dashboard', (req, res) => {
-  if (req.adminAuthenticated) {
-    res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
-  } else {
-    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
-  }
+  if (req.adminAuthenticated) res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+  else res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
 });
 
 app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   if (username === ADMIN_USERNAME && bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)) {
     const token = createAuthToken(username);
-    res.cookie(AUTH_COOKIE, token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/'
-    });
+    res.cookie(AUTH_COOKIE, token, { httpOnly: true, secure: process.env.NODE_ENV === 'production', sameSite: 'lax', path: '/' });
     res.json({ success: true });
   } else {
     res.json({ success: false, message: 'Invalid credentials' });
@@ -134,26 +112,30 @@ app.post('/logout', (req, res) => {
 app.post('/change-password', async (req, res) => {
   if (!req.adminAuthenticated) return res.status(401).json({ success: false, message: 'Not logged in' });
   const { currentPassword, newPassword } = req.body;
-  if (!bcrypt.compareSync(currentPassword, ADMIN_PASSWORD_HASH)) {
-    return res.json({ success: false, message: 'Current password incorrect' });
-  }
+  if (!bcrypt.compareSync(currentPassword, ADMIN_PASSWORD_HASH)) return res.json({ success: false, message: 'Current password incorrect' });
+  
   ADMIN_PASSWORD_HASH = bcrypt.hashSync(newPassword, 10);
   res.clearCookie(AUTH_COOKIE, { path: '/' });
   res.json({ success: true, message: 'Password changed. Please login again.' });
 });
 
 app.get('/api/appointments', async (req, res) => {
-  if (!req.adminAuthenticated) return res.status(401).json({ success: false });
   const appointments = await loadAppointments();
-  res.json(appointments);
+  // Humain frontend ko closed dates bhi batani hain
+  res.json({ appointments: appointments, closedDates: closedDates });
 });
 
 app.post('/api/appointments', async (req, res) => {
   const appointment = req.body;
   const appointments = await loadAppointments();
+  
+  // Agar din pehle hi closed hai to reject karo
+  if(closedDates.includes(appointment.date)) {
+      return res.status(400).json({ success: false, message: "Day is closed" });
+  }
+
   appointments.unshift(appointment);
   await saveAppointments(appointments);
-  console.log('Appointment received:', appointment.name);
   res.json({ success: true });
 });
 
@@ -164,33 +146,51 @@ app.put('/api/appointments/:id', async (req, res) => {
   const appointments = await loadAppointments();
   const index = appointments.findIndex(a => a.id === id);
   if (index === -1) return res.status(404).json({ success: false });
+  
   appointments[index].status = status;
   
   if (status === 'accepted') {
     appointments[index].acceptedAt = new Date().toISOString();
-    // Send WhatsApp confirmation
     if (twilioClient) {
-        const message = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon has been confirmed.\nService: ${appointments[index].service}\nDate: ${new Date(appointments[index].date).toLocaleDateString()}\nTime: ${appointments[index].time}`;
-        try {
-            await twilioClient.messages.create({
-                body: message,
-                from: twilioWhatsAppNumber,
-                to: `whatsapp:${appointments[index].phone}`
-            });
-        } catch (err) {
-            console.error('WhatsApp send error:', err);
-        }
-    } else {
-        console.log('Twilio not configured, skipping WhatsApp send');
+        const msg = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon is confirmed.\nService: ${appointments[index].service}\nDate: ${new Date(appointments[index].date).toLocaleDateString()}\nTime: ${appointments[index].time}`;
+        twilioClient.messages.create({ body: msg, from: twilioWhatsAppNumber, to: `whatsapp:${appointments[index].phone}` }).catch(e=>console.log(e));
+    }
+  } else if (status === 'rejected') {
+       // Send rejection WhatsApp if needed
+      if (twilioClient) {
+        const msg = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon has been cancelled/rejected. Please contact us for more info.`;
+        twilioClient.messages.create({ body: msg, from: twilioWhatsAppNumber, to: `whatsapp:${appointments[index].phone}` }).catch(e=>console.log(e));
     }
   }
+  
   await saveAppointments(appointments);
   res.json({ success: true });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+// API for Emergency Close Day
+app.post('/api/closedates', async (req, res) => {
+    if (!req.adminAuthenticated) return res.status(401).json({ success: false });
+    const { date } = req.body;
+    
+    if(!closedDates.includes(date)) {
+        closedDates.push(date);
+    }
+    
+    // Us din ki saari pending/accepted ko automatic reject kar do
+    const appointments = await loadAppointments();
+    let changed = false;
+    appointments.forEach(app => {
+        if(app.date === date && (app.status === 'pending' || app.status === 'accepted')) {
+            app.status = 'rejected';
+            changed = true;
+        }
+    });
+    
+    if(changed) await saveAppointments(appointments);
+    
+    res.json({ success: true, closedDates });
 });
 
-// VERCEL SERVERLESS SUPPORT KE LIYE YE LINE ADD KI HAI
+
+app.listen(PORT, () => console.log(`Server running at port ${PORT}`));
 module.exports = app;
