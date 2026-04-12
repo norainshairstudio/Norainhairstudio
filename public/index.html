@@ -9,52 +9,24 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-    
     <style>
-        .toast-container {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-        .toast {
-            min-width: 300px;
-            background-color: #222;
-            color: #fff;
-            padding: 16px 24px;
-            border-radius: 8px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            font-family: 'Inter', sans-serif;
-            font-size: 15px;
-            transform: translateX(120%);
-            transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
-            display: flex;
-            align-items: center;
-        }
+        .toast-container { position: fixed; bottom: 30px; right: 30px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; }
+        .toast { min-width: 300px; background-color: #222; color: #fff; padding: 16px 24px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); font-family: 'Inter', sans-serif; font-size: 15px; transform: translateX(120%); transition: transform 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55); display: flex; align-items: center; }
         .toast.show { transform: translateX(0); }
-        .toast-success { border-left: 5px solid #d4af37; } /* Brand Gold Color */
+        .toast-success { border-left: 5px solid #d4af37; }
         .toast-error { border-left: 5px solid #EF4444; }
-        
-        /* Monday block karne ke liye */
-        .calendar-day.disabled {
-            pointer-events: none;
-            opacity: 0.6;
-        }
+        .calendar-day.disabled { pointer-events: none; opacity: 0.6; }
     </style>
 </head>
 <body>
     <div id="toast-container" class="toast-container"></div>
-
-    <div id="loading">
-        <div class="spinner"></div>
-    </div>
+    <div id="loading"><div class="spinner"></div></div>
 
     <nav id="navbar">
         <div class="nav-container">
-            <div class="logo">Norain Hair Salon</div>
+            <a href="#" class="logo">
+                <img src="logo.png" alt="Norain Hair Salon" class="logo-img">
+            </a>
             <ul class="nav-links">
                 <li><a href="#hero">Home</a></li>
                 <li><a href="#services">Services</a></li>
@@ -68,10 +40,13 @@
     </nav>
 
     <section id="hero">
-        <div class="hero-content">
-            <h1>Norain Hair Salon</h1>
-            <p>Precision. Style. Confidence.</p>
-            <button class="cta-btn" onclick="scrollToBooking()">Book Appointment</button>
+        <div class="hero-overlay"></div>
+        <div class="hero-content container">
+            <div class="hero-text-wrapper">
+                <h1>Norain Hair Salon</h1>
+                <p>Precision grooming. Timeless style. Pure confidence.</p>
+                <button class="cta-btn" onclick="scrollToBooking()">Book Appointment</button>
+            </div>
         </div>
         <div class="scroll-indicator">
             <div class="scroll-line"></div>
@@ -122,26 +97,17 @@
                                 <label class="radio-label">
                                     <input type="radio" name="service" value="Hair Cutting" required>
                                     <span class="radio-custom">✂️</span>
-                                    <div>
-                                        <div class="service-name">Hair Cutting</div>
-                                        <div class="service-time">30 minutes</div>
-                                    </div>
+                                    <div><div class="service-name">Hair Cutting</div><div class="service-time">30 minutes</div></div>
                                 </label>
                                 <label class="radio-label">
                                     <input type="radio" name="service" value="Shave" required>
                                     <span class="radio-custom">🧔</span>
-                                    <div>
-                                        <div class="service-name">Shave</div>
-                                        <div class="service-time">30 minutes</div>
-                                    </div>
+                                    <div><div class="service-name">Shave</div><div class="service-time">30 minutes</div></div>
                                 </label>
                                 <label class="radio-label">
                                     <input type="radio" name="service" value="Hair Cutting + Shave" required>
                                     <span class="radio-custom">🪒</span>
-                                    <div>
-                                        <div class="service-name">Hair Cutting + Shave</div>
-                                        <div class="service-time">60 minutes</div>
-                                    </div>
+                                    <div><div class="service-name">Hair Cutting + Shave</div><div class="service-time">60 minutes</div></div>
                                 </label>
                             </div>
                         </div>
@@ -156,7 +122,6 @@
                         <button id="next-month" class="month-btn">→</button>
                     </div>
                     <div id="calendar" class="calendar-grid"></div>
-                    
                     <div class="time-slots-container" id="time-slots-container" style="display: none;">
                         <h4>Available Times</h4>
                         <div class="time-slots-grid" id="time-slots-grid"></div>
@@ -167,18 +132,9 @@
             <div id="booking-summary" class="booking-summary" style="display: none;">
                 <div class="summary-card">
                     <h4>Booking Summary</h4>
-                    <div class="summary-item">
-                        <span>Service:</span>
-                        <strong id="summary-service"></strong>
-                    </div>
-                    <div class="summary-item">
-                        <span>Date:</span>
-                        <strong id="summary-date"></strong>
-                    </div>
-                    <div class="summary-item">
-                        <span>Time:</span>
-                        <strong id="summary-time"></strong>
-                    </div>
+                    <div class="summary-item"><span>Service:</span><strong id="summary-service"></strong></div>
+                    <div class="summary-item"><span>Date:</span><strong id="summary-date"></strong></div>
+                    <div class="summary-item"><span>Time:</span><strong id="summary-time"></strong></div>
                     <button class="submit-btn" onclick="confirmBooking()">Confirm Booking at Norain</button>
                 </div>
             </div>
@@ -210,28 +166,13 @@
         <div class="container">
             <h2>What Our Clients Say</h2>
             <div class="testimonial-carousel">
-                <div class="testimonial">
-                    <p>"Exceptional service and attention to detail. Norain Salon is the best in town!"</p>
-                    <cite>- John D.</cite>
-                </div>
-                <div class="testimonial">
-                    <p>"The atmosphere is luxurious and the staff is professional. Highly recommend!"</p>
-                    <cite>- Mike R.</cite>
-                </div>
-                <div class="testimonial">
-                    <p>"Best haircut I've ever had. The precision and style are unmatched."</p>
-                    <cite>- Alex T.</cite>
-                </div>
-                <div class="testimonial">
-                    <p>"From the moment I walked in, I felt pampered. Will definitely return."</p>
-                    <cite>- David L.</cite>
-                </div>
+                <div class="testimonial"><p>"Exceptional service and attention to detail. Norain Salon is the best in town!"</p><cite>- John D.</cite></div>
+                <div class="testimonial"><p>"The atmosphere is luxurious and the staff is professional. Highly recommend!"</p><cite>- Mike R.</cite></div>
+                <div class="testimonial"><p>"Best haircut I've ever had. The precision and style are unmatched."</p><cite>- Alex T.</cite></div>
+                <div class="testimonial"><p>"From the moment I walked in, I felt pampered. Will definitely return."</p><cite>- David L.</cite></div>
             </div>
             <div class="carousel-dots">
-                <span class="dot active" data-slide="0"></span>
-                <span class="dot" data-slide="1"></span>
-                <span class="dot" data-slide="2"></span>
-                <span class="dot" data-slide="3"></span>
+                <span class="dot active" data-slide="0"></span><span class="dot" data-slide="1"></span><span class="dot" data-slide="2"></span><span class="dot" data-slide="3"></span>
             </div>
         </div>
     </section>
@@ -258,6 +199,7 @@
             </div>
             <div class="copyright">
                 <p>&copy; 2024 Norain Hair Salon. All rights reserved.</p>
+                <p style="margin-top: 10px; font-size: 12px; color: #aaa;">Powered and Developed by <strong>AnA Softechs</strong></p>
             </div>
         </div>
     </footer>
