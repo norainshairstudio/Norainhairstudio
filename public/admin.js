@@ -1,8 +1,8 @@
 let appointments = [];
+let closedDates = [];
 let currentDay = new Date();
 let latestNotificationId = null;
 
-// Helper function: Aaj ka din nikalne ke liye (bina waqt ke)
 function getLocalToday() {
     const d = new Date();
     d.setHours(0,0,0,0);
@@ -11,447 +11,238 @@ function getLocalToday() {
 
 async function loadAppointments() {
     const response = await fetch('/api/appointments');
-    if (response.status === 401) {
-        window.location.href = '/login';
-        return;
-    }
+    if (response.status === 401) { window.location.href = '/login'; return; }
     if (response.ok) {
-        appointments = await response.json();
+        const data = await response.json();
+        appointments = data.appointments || [];
+        closedDates = data.closedDates || [];
     }
 }
 
 function renderStats() {
-    const pendingCount = appointments.filter(a => a.status === 'pending').length;
-    const acceptedCount = appointments.filter(a => a.status === 'accepted').length;
-    document.getElementById('pending-count').textContent = pendingCount;
-    document.getElementById('accepted-count').textContent = acceptedCount;
-    document.getElementById('request-badge').textContent = pendingCount;
+    document.getElementById('pending-count').textContent = appointments.filter(a => a.status === 'pending').length;
+    document.getElementById('accepted-count').textContent = appointments.filter(a => a.status === 'accepted').length;
 }
 
-function formatDayName(date) {
-    return date.toLocaleDateString('en-US', { weekday: 'long' });
-}
-
-function formatFullDate(date) {
-    return date.toLocaleDateString('en-US', {
-        weekday: 'long', month: 'long', day: 'numeric', year: 'numeric'
-    });
-}
-
+function formatFullDate(date) { return date.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }); }
 function formatTimeDisplay(time) {
-    const [hour, minute] = time.split(':').map(Number);
-    const period = hour >= 12 ? 'PM' : 'AM';
-    const displayHour = hour % 12 || 12;
-    return `${displayHour}:${minute.toString().padStart(2, '0')} ${period}`;
+    const [h, m] = time.split(':').map(Number);
+    return `${h % 12 || 12}:${m.toString().padStart(2, '0')} ${h >= 12 ? 'PM' : 'AM'}`;
 }
 
-function buildDayId(date) {
-    return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-}
+function buildDayId(date) { return new Date(date.getTime() - (date.getTimezoneOffset() * 60000)).toISOString().split('T')[0]; }
 
-function getDayAppointments(date) {
-    const dateStr = buildDayId(date);
-    return appointments.filter(app => app.date === dateStr);
-}
+function isMonday(date) { return date.getDay() === 1; }
 
-function isMonday(date) {
-    return date.getDay() === 1;
-}
-
-// Previous Button ko past days par jaane se rokne ka logic
 function updateNavButtons() {
     const prevBtn = document.getElementById('prev-day');
     if (!prevBtn) return;
-    
-    const today = getLocalToday();
-    const viewingDay = new Date(currentDay);
-    viewingDay.setHours(0,0,0,0);
-    
-    if (viewingDay <= today) {
-        prevBtn.disabled = true;
-        prevBtn.style.opacity = '0.4';
-        prevBtn.style.cursor = 'not-allowed';
-    } else {
-        prevBtn.disabled = false;
-        prevBtn.style.opacity = '1';
-        prevBtn.style.cursor = 'pointer';
-    }
+    const viewingDay = new Date(currentDay); viewingDay.setHours(0,0,0,0);
+    if (viewingDay <= getLocalToday()) { prevBtn.disabled = true; prevBtn.style.opacity = '0.3'; prevBtn.style.cursor = 'not-allowed'; } 
+    else { prevBtn.disabled = false; prevBtn.style.opacity = '1'; prevBtn.style.cursor = 'pointer'; }
 }
 
 function renderDayDetail() {
-    const detailTitle = document.getElementById('detail-title');
-    const detailSubtitle = document.getElementById('detail-subtitle');
-    const dayStatus = document.getElementById('day-status');
+    const dayStr = buildDayId(currentDay);
+    const dayApps = appointments.filter(app => app.date === dayStr);
     const detailList = document.getElementById('day-detail-list');
+    const closeBtn = document.getElementById('close-day-btn');
     detailList.innerHTML = '';
-
-    const dayApps = getDayAppointments(currentDay);
-    const pending = dayApps.filter(a => a.status === 'pending');
-    const accepted = dayApps.filter(a => a.status === 'accepted');
-
-    if (isMonday(currentDay)) {
-        detailTitle.textContent = 'Closed - Monday';
-        detailSubtitle.textContent = 'No appointments on Mondays.';
-        dayStatus.textContent = 'CLOSED';
+    
+    document.getElementById('detail-title').textContent = currentDay.toLocaleDateString('en-US', { weekday: 'long' });
+    document.getElementById('detail-subtitle').textContent = formatFullDate(currentDay);
+    
+    // EMERGENCY CLOSE LOGIC
+    if (isMonday(currentDay) || closedDates.includes(dayStr)) {
+        document.getElementById('day-status').textContent = '🚨 CLOSED';
+        document.getElementById('day-status').style.color = '#EF4444';
+        closeBtn.classList.add('hidden');
+        detailList.innerHTML = '<div class="detail-card"><p style="color:#aaa; text-align:center;">Salon is closed on this day.</p></div>';
         return;
     }
 
-    detailTitle.textContent = formatDayName(currentDay);
-    detailSubtitle.textContent = formatFullDate(currentDay);
-    dayStatus.textContent = `${pending.length} pending • ${accepted.length} accepted`;
+    document.getElementById('day-status').textContent = `${dayApps.filter(a=>a.status==='pending').length} Pending • ${dayApps.filter(a=>a.status==='accepted').length} Accepted`;
+    document.getElementById('day-status').style.color = '#d4af37';
+    
+    // Show Close Day Button only for Future/Today
+    const viewingDay = new Date(currentDay); viewingDay.setHours(0,0,0,0);
+    if(viewingDay >= getLocalToday()) closeBtn.classList.remove('hidden');
+    else closeBtn.classList.add('hidden');
 
     if (dayApps.length === 0) {
-        detailList.innerHTML = '<div class="detail-card"><p>No appointments scheduled for this day.</p></div>';
+        detailList.innerHTML = '<div class="detail-card"><p style="color:#aaa; text-align:center;">No bookings scheduled.</p></div>';
         return;
     }
 
-    dayApps.forEach(request => {
+    dayApps.forEach(req => {
+        // Sirf Pending, Accepted dikhao.. Reject wali dashboard history main dekhengy
+        if(req.status === 'rejected') return; 
+
         const card = document.createElement('div');
         card.className = 'detail-card';
-        card.innerHTML = `
-            <div class="meta"><span>${request.name}</span><span>${formatTimeDisplay(request.time)}</span></div>
-            <h3 style="margin-top:5px; margin-bottom:5px;">${request.service}</h3>
-            <p style="margin:5px 0;">Phone: ${request.phone}</p>
-            <p style="margin:5px 0;">Status: <strong>${request.status.toUpperCase()}</strong></p>`;
+        card.innerHTML = `<div class="meta"><span>${req.name}</span><span style="color:#fff">${formatTimeDisplay(req.time)}</span></div>
+            <h3 style="margin:5px 0; color:#d4af37;">${req.service}</h3>
+            <p style="margin:5px 0; color:#ccc;">Phone: ${req.phone}</p>`;
 
-        if (request.status === 'pending') {
-            const acceptBtn = document.createElement('button');
-            acceptBtn.className = 'confirm-btn';
-            acceptBtn.textContent = 'Accept Request';
-            acceptBtn.addEventListener('click', () => acceptAppointment(request.id));
-            card.appendChild(acceptBtn);
+        if (req.status === 'pending') {
+            const btns = document.createElement('div');
+            btns.className = 'action-btns';
+            btns.innerHTML = `<button class="confirm-btn">Accept</button><button class="reject-btn">Reject</button>`;
+            btns.querySelector('.confirm-btn').onclick = () => updateStatus(req.id, 'accepted');
+            btns.querySelector('.reject-btn').onclick = () => updateStatus(req.id, 'rejected');
+            card.appendChild(btns);
         } else {
-            const confirmation = document.createElement('div');
-            confirmation.style.marginTop = '10px';
-            confirmation.innerHTML = `<p style="color: #10B981; font-weight:bold; margin:0;">✓ Confirmed via WhatsApp.</p>`;
-            card.appendChild(confirmation);
+            card.innerHTML += `<p style="color: #10B981; font-weight:600; margin-top:10px; font-size:13px;">✓ Confirmed via WhatsApp</p>`;
         }
-
         detailList.appendChild(card);
     });
 }
 
-async function acceptAppointment(appointmentId) {
-    const response = await fetch(`/api/appointments/${appointmentId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'accepted' })
-    });
-    if (response.ok) {
+// NAYA FUNCTION: Update Status (Accept ya Reject)
+async function updateStatus(id, status) {
+    const res = await fetch(`/api/appointments/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ status }) });
+    if (res.ok) {
         await loadAppointments();
-        renderStats();
-        renderRequestList();
-        renderTodaySummary();
-        renderDayDetail();
-        
-        // Agar all requests panel khula hai to usay bhi refresh karo
+        renderStats(); renderRequestList(); renderTodaySummary(); renderDayDetail();
         const panel = document.getElementById('all-requests-panel');
-        if (panel && !panel.classList.contains('hidden')) {
-            const fromDate = document.getElementById('filter-from-date')?.value;
-            const toDate = document.getElementById('filter-to-date')?.value;
-            renderAllRequests(fromDate, toDate);
-        }
-        
-        showToast('Appointment accepted & WhatsApp confirmation sent!', 'success');
+        if (panel && !panel.classList.contains('hidden')) renderAllRequests();
+        showToast(status === 'accepted' ? 'Accepted & WhatsApp sent!' : 'Request Rejected!', status === 'accepted' ? 'success' : 'error');
     }
 }
+
+// NAYA FUNCTION: Close Day API Call
+document.getElementById('close-day-btn')?.addEventListener('click', async () => {
+    if(!confirm("Are you sure? This will REJECT all pending/accepted bookings for this day and close the salon.")) return;
+    
+    const dayStr = buildDayId(currentDay);
+    const res = await fetch('/api/closedates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: dayStr }) });
+    if(res.ok) {
+        await loadAppointments();
+        renderDayDetail(); renderTodaySummary(); renderRequestList(); renderStats();
+        showToast('Day closed successfully. Clients blocked.', 'error');
+    }
+});
 
 function renderTodaySummary() {
-    const todayList = document.getElementById('today-list');
-    if(!todayList) return;
-    todayList.innerHTML = '';
-    
-    // Hamesha local aaj ka din uthayega
-    const todayAppointments = appointments.filter(app => app.date === buildDayId(new Date()));
+    const list = document.getElementById('today-list'); if(!list) return;
+    list.innerHTML = '';
+    const todayApps = appointments.filter(app => app.date === buildDayId(new Date()) && app.status !== 'rejected');
+    if (todayApps.length === 0) return list.innerHTML = '<div class="detail-card"><p style="color:#aaa; text-align:center;">No schedule for today.</p></div>';
 
-    if (todayAppointments.length === 0) {
-        todayList.innerHTML = '<div class="detail-card"><p>No appointments scheduled for today.</p></div>';
-        return;
-    }
-
-    todayAppointments.forEach(request => {
-        const card = document.createElement('div');
-        card.className = 'detail-card';
-        card.innerHTML = `
-            <div class="meta"><span>${formatTimeDisplay(request.time)}</span><span style="color:${request.status === 'accepted' ? '#10B981' : '#f59e0b'}">${request.status.toUpperCase()}</span></div>
-            <h3 style="margin-top:5px; margin-bottom:5px;">${request.service}</h3>
-            <p style="margin:5px 0;">${request.name} • ${request.phone}</p>`;
-        todayList.appendChild(card);
+    todayApps.forEach(req => {
+        const card = document.createElement('div'); card.className = 'detail-card';
+        card.innerHTML = `<div class="meta"><span>${formatTimeDisplay(req.time)}</span><span style="color:${req.status === 'accepted' ? '#10B981' : '#d4af37'}">${req.status.toUpperCase()}</span></div>
+            <h3 style="margin:5px 0; color:#fff;">${req.service}</h3><p style="margin:0; color:#aaa; font-size:14px;">${req.name}</p>`;
+        list.appendChild(card);
     });
 }
 
-// Nayi Logic: Date Range (From/To) Filter
 function renderAllRequests(fromDate = null, toDate = null) {
-    const allRequestsList = document.getElementById('all-requests-list');
-    if(!allRequestsList) return;
-    
-    let filtered = appointments;
+    const list = document.getElementById('all-requests-list'); if(!list) return;
+    let filtered = fromDate || toDate ? appointments.filter(a => {
+        const d = new Date(a.date).getTime();
+        return d >= (fromDate ? new Date(fromDate).getTime() : 0) && d <= (toDate ? new Date(toDate).getTime() : Infinity);
+    }) : appointments;
 
-    // Filter Logic
-    if (fromDate || toDate) {
-        filtered = appointments.filter(a => {
-            const appDate = new Date(a.date).getTime();
-            const fromTime = fromDate ? new Date(fromDate).getTime() : 0;
-            const toTime = toDate ? new Date(toDate).getTime() : Infinity;
-            return appDate >= fromTime && appDate <= toTime;
-        });
-    }
+    list.innerHTML = '';
+    if (filtered.length === 0) return list.innerHTML = '<div class="detail-card" style="grid-column: 1/-1;"><p style="color:#aaa; text-align:center;">No ledger data.</p></div>';
 
-    allRequestsList.innerHTML = '';
-    if (filtered.length === 0) {
-        allRequestsList.innerHTML = '<div class="detail-card"><p>No requests found for the selected filters.</p></div>';
-        return;
-    }
-
-    // Sab se nayi request sab se oopar aayegi
-    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    filtered.forEach(request => {
-        const card = document.createElement('div');
-        card.className = 'request-card';
-        card.innerHTML = `
-            <div class="meta"><span>${formatFullDate(new Date(request.date))}</span><span>${formatTimeDisplay(request.time)}</span></div>
-            <h3 style="margin:5px 0;">${request.service}</h3>
-            <p style="margin:5px 0;">${request.name} • ${request.phone}</p>
-            <p style="margin:5px 0;">Status: <strong style="color:${request.status === 'accepted' ? '#10B981' : '#f59e0b'}">${request.status.toUpperCase()}</strong></p>`;
-        allRequestsList.appendChild(card);
+    filtered.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).forEach(req => {
+        const card = document.createElement('div'); card.className = 'request-card';
+        let color = req.status === 'accepted' ? '#10B981' : req.status === 'rejected' ? '#EF4444' : '#d4af37';
+        card.innerHTML = `<div class="meta"><span>${req.date}</span><span style="color:#fff">${formatTimeDisplay(req.time)}</span></div>
+            <h3 style="margin:5px 0; color:#fff;">${req.service}</h3><p style="margin:5px 0; color:#aaa;">${req.name}</p>
+            <p style="margin:10px 0 0 0; font-size:12px;">STATUS: <strong style="color:${color}">${req.status.toUpperCase()}</strong></p>`;
+        list.appendChild(card);
     });
 }
 
-// Excel Export Logic (CSV Format)
 function exportToExcel() {
-    const fromDate = document.getElementById('filter-from-date')?.value;
-    const toDate = document.getElementById('filter-to-date')?.value;
-    
-    let filtered = appointments;
-    if (fromDate || toDate) {
-        filtered = appointments.filter(a => {
-            const appDate = new Date(a.date).getTime();
-            const fromTime = fromDate ? new Date(fromDate).getTime() : 0;
-            const toTime = toDate ? new Date(toDate).getTime() : Infinity;
-            return appDate >= fromTime && appDate <= toTime;
-        });
-    }
-
-    if (filtered.length === 0) {
-        alert("No data available to export for this date range.");
-        return;
-    }
-
-    // Excel CSV Header
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Booking ID,Name,Phone,Service,Date,Time,Status,Booked On\n";
-
-    filtered.forEach(row => {
-        // Commas aur spaces se data kharab na ho isliye quotes ("") lagaye hain
-        const rowData = [
-            row.id,
-            `"${row.name}"`,
-            `"${row.phone}"`,
-            `"${row.service}"`,
-            row.date,
-            row.time,
-            row.status,
-            `"${new Date(row.createdAt).toLocaleString()}"`
-        ];
-        csvContent += rowData.join(",") + "\n";
-    });
-
-    // File Download karwana
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    let fileName = "Norain_Appointments";
-    if(fromDate || toDate) fileName += `_${fromDate || 'Start'}_to_${toDate || 'End'}`;
-    link.setAttribute("download", fileName + ".csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    let csv = "ID,Name,Phone,Service,Date,Time,Status,Created\n";
+    appointments.forEach(r => csv += `${r.id},"${r.name}","${r.phone}","${r.service}",${r.date},${r.time},${r.status},"${new Date(r.createdAt).toLocaleString()}"\n`);
+    const link = document.createElement("a"); link.setAttribute("href", encodeURI("data:text/csv;charset=utf-8," + csv));
+    link.setAttribute("download", "Norain_Ledger.csv"); document.body.appendChild(link); link.click(); link.remove();
 }
 
 function renderRequestList() {
-    const requestList = document.getElementById('request-list');
-    if(!requestList) return;
-    requestList.innerHTML = '';
-    const pendingRequests = appointments.filter(a => a.status === 'pending');
+    const list = document.getElementById('request-list'); if(!list) return;
+    list.innerHTML = '';
+    const pending = appointments.filter(a => a.status === 'pending');
+    if (pending.length === 0) return list.innerHTML = '<div class="detail-card"><p style="color:#aaa; text-align:center;">Inbox zero.</p></div>';
 
-    if (pendingRequests.length === 0) {
-        requestList.innerHTML = '<div class="detail-card"><p>No pending requests at the moment.</p></div>';
-        return;
-    }
-
-    pendingRequests.forEach(request => {
-        const card = document.createElement('div');
-        card.className = 'request-card';
-
-        card.innerHTML = `<div class="meta"><span>${request.name}</span><span>${formatTimeDisplay(request.time)}</span></div>
-            <h3 style="margin:5px 0;">${request.service}</h3>
-            <p style="margin:5px 0;">${formatFullDate(new Date(request.date))}</p>
-            <p style="margin:5px 0;">Phone: ${request.phone}</p>`;
-
-        const acceptBtn = document.createElement('button');
-        acceptBtn.className = 'confirm-btn';
-        acceptBtn.textContent = 'Accept';
-        acceptBtn.addEventListener('click', () => acceptAppointment(request.id));
-
-        card.appendChild(acceptBtn);
-        requestList.appendChild(card);
+    pending.forEach(req => {
+        const card = document.createElement('div'); card.className = 'request-card';
+        card.innerHTML = `<div class="meta"><span>${req.name}</span><span style="color:#fff">${formatTimeDisplay(req.time)}</span></div>
+            <h3 style="margin:5px 0; color:#d4af37;">${req.service}</h3><p style="margin:5px 0; color:#aaa;">Date: ${req.date}</p>`;
+        const btns = document.createElement('div'); btns.className = 'action-btns';
+        btns.innerHTML = `<button class="confirm-btn">Accept</button><button class="reject-btn">Reject</button>`;
+        btns.querySelector('.confirm-btn').onclick = () => updateStatus(req.id, 'accepted');
+        btns.querySelector('.reject-btn').onclick = () => updateStatus(req.id, 'rejected');
+        card.appendChild(btns); list.appendChild(card);
     });
 }
 
-function showToast(message, type = 'success') {
-    const container = document.getElementById('toast-container');
-    if (!container) return;
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.textContent = message;
-    container.appendChild(toast);
-    
-    setTimeout(() => toast.classList.add('show'), 10);
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 400);
-    }, 3000);
+function showToast(msg, type = 'success') {
+    const cont = document.getElementById('toast-container'); if (!cont) return;
+    const t = document.createElement('div'); t.className = `toast toast-${type}`;
+    if(type==='error') t.style.borderLeftColor = '#EF4444';
+    t.textContent = msg; cont.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 400); }, 3000);
 }
 
 function checkForNewRequests() {
-    // Latest request check karne ke liye sort karna zaroori hai
-    const sortedApps = [...appointments].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
-    const latest = sortedApps[0];
-    
-    if (latest && latest.id !== latestNotificationId) {
+    const latest = [...appointments].sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt))[0];
+    if (latest && latest.id !== latestNotificationId && latest.status === 'pending') {
         latestNotificationId = latest.id;
-        showToast(`New pending booking from ${latest.name} for ${latest.service}.`, 'success');
+        showToast(`New booking from ${latest.name}!`, 'success');
     }
 }
 
 async function initializeAdmin() {
     await loadAppointments();
-    
-    // Set Current Day exactly to Local Today
     currentDay = getLocalToday();
-    
-    renderStats();
-    renderRequestList();
-    renderTodaySummary();
-    renderDayDetail();
-    updateNavButtons();
+    renderStats(); renderRequestList(); renderTodaySummary(); renderDayDetail(); updateNavButtons();
     document.getElementById('current-day').textContent = formatFullDate(currentDay);
 
-    // Day Navigation Buttons
-    document.getElementById('prev-day').addEventListener('click', () => {
-        const today = getLocalToday();
-        const viewingDay = new Date(currentDay);
-        viewingDay.setHours(0,0,0,0);
-        
-        // Agar aaj ka din hai to peeche janay ki ijazat nahi
-        if (viewingDay > today) {
+    document.getElementById('prev-day').onclick = () => {
+        if (new Date(currentDay).setHours(0,0,0,0) > getLocalToday()) {
             currentDay.setDate(currentDay.getDate() - 1);
             document.getElementById('current-day').textContent = formatFullDate(currentDay);
-            renderDayDetail();
-            updateNavButtons();
+            renderDayDetail(); updateNavButtons();
         }
-    });
+    };
 
-    document.getElementById('next-day').addEventListener('click', () => {
+    document.getElementById('next-day').onclick = () => {
         currentDay.setDate(currentDay.getDate() + 1);
         document.getElementById('current-day').textContent = formatFullDate(currentDay);
-        renderDayDetail();
-        updateNavButtons();
-    });
+        renderDayDetail(); updateNavButtons();
+    };
 
-    document.getElementById('change-password-btn').addEventListener('click', () => {
-        document.getElementById('password-modal').classList.remove('hidden');
-    });
-
-    document.getElementById('cancel-password').addEventListener('click', () => {
-        document.getElementById('password-modal').classList.add('hidden');
-        document.getElementById('password-form').reset();
-        document.getElementById('password-message').textContent = '';
-    });
-
-    document.getElementById('view-all-btn').addEventListener('click', () => {
-        const panel = document.getElementById('all-requests-panel');
-        panel.classList.toggle('hidden');
-        if (!panel.classList.contains('hidden')) {
-            renderAllRequests();
-        }
-    });
-
-    // New Filter and Export Listeners
-    document.getElementById('filter-btn')?.addEventListener('click', () => {
-        const fromDate = document.getElementById('filter-from-date').value;
-        const toDate = document.getElementById('filter-to-date').value;
-        renderAllRequests(fromDate, toDate);
-    });
-
-    document.getElementById('clear-filter-btn')?.addEventListener('click', () => {
-        document.getElementById('filter-from-date').value = '';
-        document.getElementById('filter-to-date').value = '';
-        renderAllRequests();
-    });
-
+    document.getElementById('change-password-btn').onclick = () => document.getElementById('password-modal').classList.remove('hidden');
+    document.getElementById('cancel-password').onclick = () => { document.getElementById('password-modal').classList.add('hidden'); document.getElementById('password-form').reset(); };
+    document.getElementById('view-all-btn').onclick = () => { document.getElementById('all-requests-panel').classList.toggle('hidden'); renderAllRequests(); };
+    document.getElementById('filter-btn')?.addEventListener('click', () => renderAllRequests(document.getElementById('filter-from-date').value, document.getElementById('filter-to-date').value));
+    document.getElementById('clear-filter-btn')?.addEventListener('click', () => { document.getElementById('filter-from-date').value = ''; document.getElementById('filter-to-date').value = ''; renderAllRequests(); });
     document.getElementById('export-btn')?.addEventListener('click', exportToExcel);
+    document.getElementById('logout-btn').onclick = async () => { await fetch('/logout', { method: 'POST' }); window.location.href = '/login'; };
 
-    document.getElementById('password-form').addEventListener('submit', async (e) => {
+    document.getElementById('password-form').onsubmit = async (e) => {
         e.preventDefault();
-        const currentPassword = document.getElementById('current-password').value;
-        const newPassword = document.getElementById('new-password').value;
-        const confirmPassword = document.getElementById('confirm-password').value;
-        const message = document.getElementById('password-message');
+        const cp = document.getElementById('current-password').value, np = document.getElementById('new-password').value;
+        if (np !== document.getElementById('confirm-password').value) return document.getElementById('password-message').textContent = 'Passwords do not match.';
+        const res = await fetch('/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ currentPassword: cp, newPassword: np }) });
+        const result = await res.json();
+        document.getElementById('password-message').style.color = result.success ? '#10B981' : '#EF4444';
+        document.getElementById('password-message').textContent = result.message;
+        if (result.success) setTimeout(() => window.location.href = '/login', 2000);
+    };
 
-        if (newPassword !== confirmPassword) {
-            message.textContent = 'New passwords do not match.';
-            return;
-        }
-
-        const response = await fetch('/change-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ currentPassword, newPassword })
-        });
-
-        const result = await response.json();
-        if (result.success) {
-            message.style.color = "green";
-            message.textContent = result.message;
-            setTimeout(() => {
-                window.location.href = '/login';
-            }, 2000);
-        } else {
-            message.style.color = "red";
-            message.textContent = result.message;
-        }
-    });
-
-    document.getElementById('logout-btn').addEventListener('click', async () => {
-        try {
-            await fetch('/logout', { method: 'POST' });
-        } catch (e) {
-            console.log("Logout api issue", e);
-        }
-        window.location.href = '/login';
-    });
-
-    // Poll for new appointments every 10 seconds
     setInterval(async () => {
-        await loadAppointments();
-        renderStats();
-        renderRequestList();
-        renderTodaySummary();
-        renderDayDetail();
-        
-        // All Requests pane agar khula hai to refresh kro
-        const panel = document.getElementById('all-requests-panel');
-        if (panel && !panel.classList.contains('hidden')) {
-            const fromDate = document.getElementById('filter-from-date')?.value;
-            const toDate = document.getElementById('filter-to-date')?.value;
-            renderAllRequests(fromDate, toDate);
-        }
-        
+        await loadAppointments(); renderStats(); renderRequestList(); renderTodaySummary(); renderDayDetail();
+        if (!document.getElementById('all-requests-panel').classList.contains('hidden')) renderAllRequests();
         checkForNewRequests();
     }, 10000);
 }
 
-// Start Admin Application
 initializeAdmin();
