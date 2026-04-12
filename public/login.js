@@ -16,10 +16,6 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
         const result = await response.json();
 
         if (result.success) {
-            // Frontend ko batayen ke login kamyaab ho gaya hai
-            localStorage.setItem("isLoggedIn", "true");
-            
-            // Dashboard par bhej dein
             window.location.href = '/dashboard';
         } else {
             // Galat password ka message

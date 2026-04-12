@@ -1,9 +1,14 @@
+
 let appointments = [];
 let currentDay = new Date();
 let latestNotificationId = null;
 
 async function loadAppointments() {
     const response = await fetch('/api/appointments');
+    if (response.status === 401) {
+        window.location.href = '/login';
+        return;
+    }
     if (response.ok) {
         appointments = await response.json();
     }
@@ -237,7 +242,7 @@ async function initializeAdmin() {
         if (result.success) {
             message.textContent = result.message;
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                window.location.href = '/login';
             }, 2000);
         } else {
             message.textContent = result.message;
@@ -245,8 +250,12 @@ async function initializeAdmin() {
     });
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
-        await fetch('/logout', { method: 'POST' });
-        window.location.href = '/dashboard';
+        try {
+            await fetch('/logout', { method: 'POST' });
+        } catch (e) {
+            console.log("Logout api issue", e);
+        }
+        window.location.href = '/login';
     });
 
     // Poll for new appointments every 10 seconds
