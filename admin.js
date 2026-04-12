@@ -1,3 +1,10 @@
+// --- SECURITY CHECK (Sab se pehly) ---
+if (localStorage.getItem("isLoggedIn") !== "true") {
+    // Agar login nahi hai, to usay wapas login page par phenk do
+    window.location.href = "/login";
+}
+// -------------------------------------
+
 let appointments = [];
 let currentDay = new Date();
 let latestNotificationId = null;
@@ -237,7 +244,9 @@ async function initializeAdmin() {
         if (result.success) {
             message.textContent = result.message;
             setTimeout(() => {
-                window.location.href = '/dashboard';
+                // Password change ke baad dobara login karwayein (security k liye best hai)
+                localStorage.removeItem("isLoggedIn");
+                window.location.href = '/login';
             }, 2000);
         } else {
             message.textContent = result.message;
@@ -245,8 +254,14 @@ async function initializeAdmin() {
     });
 
     document.getElementById('logout-btn').addEventListener('click', async () => {
-        await fetch('/logout', { method: 'POST' });
-        window.location.href = '/dashboard';
+        try {
+            await fetch('/logout', { method: 'POST' });
+        } catch (e) {
+            console.log("Logout api issue", e);
+        }
+        // Logout karne par session clear karke login page par bhej do
+        localStorage.removeItem("isLoggedIn");
+        window.location.href = '/login';
     });
 
     // Poll for new appointments every 10 seconds

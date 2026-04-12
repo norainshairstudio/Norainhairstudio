@@ -1,24 +1,13 @@
 {
-  "version": 2,
-  "builds": [
+  "cleanUrls": true,
+  "rewrites": [
     {
-      "src": "api/server.js",
-      "use": "@vercel/node"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/api/(.*)",
-      "dest": "/api/server.js"
+      "source": "/login",
+      "destination": "/login.html"
     },
     {
-      "src": "/(.*)",
-      "dest": "/api/server.js"
+      "source": "/dashboard",
+      "destination": "/admin.html"
     }
-  ],
-  "functions": {
-    "api/server.js": {
-      "runtime": "nodejs18.x"
-    }
-  }
+  ]
 }
