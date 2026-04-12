@@ -1,5 +1,41 @@
 # Norain Hair Salon - Premium Booking Website with Admin Dashboard
 
+## 🚀 Vercel Deployment
+
+This project is configured for Vercel deployment with serverless functions.
+
+### File Structure for Vercel:
+```
+/
+├── api/
+│   └── server.js          # Serverless API routes
+├── public/
+│   ├── index.html         # Customer website
+│   ├── admin.html         # Admin dashboard
+│   ├── login.html         # Admin login
+│   ├── styles.css         # Customer styles
+│   ├── admin.css          # Admin styles
+│   ├── login.css          # Login styles
+│   ├── script.js          # Customer booking logic
+│   ├── admin.js           # Admin dashboard logic
+│   └── login.js           # Login logic
+├── appointments.json      # Appointment storage
+├── vercel.json           # Vercel configuration
+└── package.json          # Dependencies
+```
+
+### Access URLs:
+- **Customer Site**: `https://your-domain.vercel.app/`
+- **Admin Login**: `https://your-domain.vercel.app/dashboard`
+  - Username: `norainhairsalon`
+  - Password: `norainadmin123`
+
+### Environment Variables (Optional):
+Set these in Vercel dashboard for WhatsApp functionality:
+- `TWILIO_ACCOUNT_SID`
+- `TWILIO_AUTH_TOKEN`
+- `SESSION_SECRET` (optional, defaults to 'norain_secret_key')
+
 ## 🎨 Features Implemented
 
 ### 1. **Modern Light Theme UI**
