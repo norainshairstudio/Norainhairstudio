@@ -59,25 +59,39 @@ app.use((req, res, next) => {
     next();
 });
 
-// Appointment storage
-const APPOINTMENTS_FILE = path.join(__dirname, 'appointments.json');
+// --- VERCEL FIX: In-Memory Database ---
+// Vercel par file save nahi hoti, is liye hum data memory mein rakhenge
+let memoryAppointments = null;
+const APPOINTMENTS_FILE = path.join(process.cwd(), 'appointments.json');
 
 async function loadAppointments() {
+  // Agar memory mein data hai to seedha wahi bhej do
+  if (memoryAppointments) return memoryAppointments;
+
+  // Pehli dafa file se parho
   try {
     const data = await fs.readFile(APPOINTMENTS_FILE, 'utf8');
-    return JSON.parse(data);
+    memoryAppointments = JSON.parse(data);
+    return memoryAppointments;
   } catch (err) {
-    return [];
+    memoryAppointments = [];
+    return memoryAppointments;
   }
 }
 
 async function saveAppointments(appointments) {
+  // Data ko memory mein update kar do (Vercel isay yaad rakhega)
+  memoryAppointments = appointments;
+
+  // Local computer ke liye file mein bhi likh do
   try {
     await fs.writeFile(APPOINTMENTS_FILE, JSON.stringify(appointments, null, 2));
   } catch (err) {
-    console.error("Save error on Vercel:", err);
+    // Vercel yahan fail hoga lekin humara system chalta rahega qk data memory mein hai
+    console.log("Vercel read-only mode: Data saved in memory instead of file.");
   }
 }
+// ---------------------------------------
 
 // Routes
 app.get('/', (req, res) => {
@@ -139,11 +153,12 @@ app.post('/api/appointments', async (req, res) => {
   const appointments = await loadAppointments();
   appointments.unshift(appointment);
   await saveAppointments(appointments);
+  console.log('Appointment received:', appointment.name);
   res.json({ success: true });
 });
 
 app.put('/api/appointments/:id', async (req, res) => {
-  if (!req.session.loggedIn) return res.status(401).json({ success: false });
+  if (!req.adminAuthenticated) return res.status(401).json({ success: false });
   const { id } = req.params;
   const { status } = req.body;
   const appointments = await loadAppointments();
