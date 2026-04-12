@@ -10,11 +10,11 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fc; margin: 0; padding: 20px; color: #2d3748; }
         .dashboard-container { max-width: 1200px; margin: 0 auto; }
         
-        /* Header styling with Logo */
+        /* Header styling with Bigger Logo */
         .header { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 15px 30px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .header-logo { display: flex; align-items: center; gap: 15px; }
-        .header-logo img { height: 40px; width: auto; }
-        .header-logo h1 { margin: 0; font-family: 'Playfair Display', serif; font-size: 24px; color: #1a202c; }
+        .header-logo img { height: 60px; width: auto; } /* Size increased to 60px */
+        .header-logo h1 { margin: 0; font-family: 'Playfair Display', serif; font-size: 26px; color: #1a202c; }
         
         .btn-group button { padding: 10px 18px; margin-left: 10px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: 0.3s; }
         .btn-gold { background: #d4af37; color: #fff; }
@@ -64,9 +64,30 @@
         .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 320px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .modal-content input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e0; border-radius: 6px; background: #fff; color: #2d3748; box-sizing: border-box; }
         
-        /* AnA Softechs Admin Branding */
-        .admin-footer { text-align: center; margin-top: 40px; padding-top: 20px; border-top: 1px solid #e2e8f0; color: #a0aec0; font-size: 13px; }
-        .admin-footer strong { color: #d4af37; font-weight: 700; }
+        /* BARA AnA Softechs Branding Footer */
+        .admin-footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            padding: 30px; 
+            background: #ffffff;
+            border: 2px solid #d4af37; 
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15);
+        }
+        .admin-footer span {
+            display: block;
+            color: #718096;
+            font-size: 16px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        .admin-footer strong { 
+            color: #d4af37; 
+            font-size: 32px; /* Bara size */
+            font-family: 'Playfair Display', serif;
+            letter-spacing: 1px;
+        }
     </style>
 </head>
 <body>
@@ -148,7 +169,8 @@
         </div>
         
         <div class="admin-footer">
-            Developed & Maintained by <strong>AnA Softechs</strong>
+            <span>Powered & Developed By</span>
+            <strong>AnA Softechs</strong>
         </div>
     </div>
 
