@@ -110,8 +110,6 @@ const services = {
     'Hair Cutting + Shave': 60
 };
 
-
-
 // Realistic booked appointments
 const bookedSlotsData = {
     '2026-04-12': ['14:00', '15:00', '16:30', '18:00', '19:30'],
@@ -386,7 +384,8 @@ async function addAppointmentRequest(appointment) {
     });
 }
 
-function confirmBooking() {
+// YAHAN PAR 'async' ADD KIYA HAI
+async function confirmBooking() {
     const name = document.getElementById('name').value;
     const phone = document.getElementById('phone').value;
 
