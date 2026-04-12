@@ -4,16 +4,18 @@ const bcrypt = require('bcryptjs');
 const twilio = require('twilio');
 const fs = require('fs-extra');
 const path = require('path');
+const bodyParser = require('body-parser');
 
 const app = express();
+const PORT = process.env.PORT || 3000;
 
-// Twilio credentials (set in Vercel environment variables)
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
+// Twilio credentials (replace with your own for real sending)
+const accountSid = process.env.TWILIO_ACCOUNT_SID || 'your_twilio_account_sid';
+const authToken = process.env.TWILIO_AUTH_TOKEN || 'your_twilio_auth_token';
 let twilioClient = null;
-let twilioWhatsAppNumber = 'whatsapp:+14155238886';
+let twilioWhatsAppNumber = 'whatsapp:+14155238886'; // Twilio sandbox number
 
-if (accountSid && authToken) {
+if (accountSid !== 'your_twilio_account_sid' && authToken !== 'your_twilio_auth_token') {
     twilioClient = twilio(accountSid, authToken);
 }
 
@@ -23,18 +25,18 @@ let ADMIN_PASSWORD_HASH = bcrypt.hashSync('norainadmin123', 10);
 
 // Session setup
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'norain_secret_key',
+  secret: 'norain_secret_key',
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: process.env.NODE_ENV === 'production' }
+  cookie: { secure: false } // Set to true in production with HTTPS
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname)));
 
-// Appointment storage (use Vercel KV or similar in production)
-const APPOINTMENTS_FILE = path.join(__dirname, '..', 'appointments.json');
+// Appointment storage
+const APPOINTMENTS_FILE = path.join(__dirname, 'appointments.json');
 
 async function loadAppointments() {
   try {
@@ -46,23 +48,28 @@ async function loadAppointments() {
 }
 
 async function saveAppointments(appointments) {
-  await fs.writeFile(APPOINTMENTS_FILE, JSON.stringify(appointments, null, 2));
+  try {
+    await fs.writeFile(APPOINTMENTS_FILE, JSON.stringify(appointments, null, 2));
+  } catch (err) {
+    console.error("Save error on Vercel:", err);
+  }
 }
 
 // Routes
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 app.get('/dashboard', (req, res) => {
   if (req.session.loggedIn) {
-    res.sendFile(path.join(__dirname, '..', 'public', 'admin.html'));
+    res.sendFile(path.join(__dirname, 'admin.html'));
   } else {
-    res.sendFile(path.join(__dirname, '..', 'public', 'login.html'));
+    res.sendFile(path.join(__dirname, 'login.html'));
   }
 });
 
-app.post('/login', async (req, res) => {
+// Yahan rasta /api/login update kiya hai
+app.post('/api/login', async (req, res) => {
   const { username, password } = req.body;
   if (username === ADMIN_USERNAME && bcrypt.compareSync(password, ADMIN_PASSWORD_HASH)) {
     req.session.loggedIn = true;
@@ -85,6 +92,7 @@ app.post('/change-password', async (req, res) => {
     return res.json({ success: false, message: 'Current password incorrect' });
   }
   ADMIN_PASSWORD_HASH = bcrypt.hashSync(newPassword, 10);
+  // Invalidate all sessions by changing secret or clearing sessions
   req.session.destroy();
   res.json({ success: true, message: 'Password changed. Please login again.' });
 });
@@ -111,8 +119,10 @@ app.put('/api/appointments/:id', async (req, res) => {
   const index = appointments.findIndex(a => a.id === id);
   if (index === -1) return res.status(404).json({ success: false });
   appointments[index].status = status;
+  
   if (status === 'accepted') {
     appointments[index].acceptedAt = new Date().toISOString();
+    // Send WhatsApp confirmation
     if (twilioClient) {
         const message = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon has been confirmed.\nService: ${appointments[index].service}\nDate: ${new Date(appointments[index].date).toLocaleDateString()}\nTime: ${appointments[index].time}`;
         try {
@@ -124,10 +134,17 @@ app.put('/api/appointments/:id', async (req, res) => {
         } catch (err) {
             console.error('WhatsApp send error:', err);
         }
+    } else {
+        console.log('Twilio not configured, skipping WhatsApp send');
     }
   }
   await saveAppointments(appointments);
   res.json({ success: true });
 });
 
+app.listen(PORT, () => {
+  console.log(`Server running at http://localhost:${PORT}`);
+});
+
+// VERCEL SERVERLESS SUPPORT KE LIYE YE LINE ADD KI HAI
 module.exports = app;
