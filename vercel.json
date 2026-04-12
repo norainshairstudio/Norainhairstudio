@@ -1,13 +1,31 @@
 {
-  "cleanUrls": true,
+  "version": 2,
+  "builds": [
+    {
+      "src": "api/server.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "/api/server.js"
+    },
+    {
       "source": "/login",
-      "destination": "/login.html"
+      "destination": "/public/login.html"
     },
     {
       "source": "/dashboard",
-      "destination": "/admin.html"
+      "destination": "/public/admin.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/public/$1"
     }
   ]
 }
