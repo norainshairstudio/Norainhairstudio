@@ -148,7 +148,7 @@ function formatTime(hours, minutes) {
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
-// Smart Generator - Checks overlapping and closing time
+// Smart Generator - Checks overlapping, closing time AND Past Time
 function generateTimeSlots(service, date) {
     const duration = services[service];
     const slots = [];
@@ -156,7 +156,14 @@ function generateTimeSlots(service, date) {
     const endTime = workingHours.end * 60;
     const booked = bookedSlotsData[date] || [];
 
-    // Loop end time logic: Agar service 60 min hai, to aakhri slot 21:00 (9:00 PM) banega, 21:30 nahi.
+    // NAYI LOGIC: Current time check karne ke liye
+    const now = new Date();
+    // Local time zone ke hisaab se aaj ki date nikalo
+    const localTodayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const isToday = (date === localTodayStr);
+    const currentMinutesOfDay = now.getHours() * 60 + now.getMinutes();
+
+    // Loop end time logic: Agar service 60 min hai, to aakhri slot 21:00 (9:00 PM) banega
     for (let time = startTime; time + duration <= endTime; time += 30) {
         const hours = Math.floor(time / 60);
         const minutes = time % 60;
@@ -164,14 +171,21 @@ function generateTimeSlots(service, date) {
         const displayTime = formatTime(hours, minutes);
         
         let isFree = true;
-        // Check current slot AND next slot if duration is 60mins
-        for(let checkTime = time; checkTime < time + duration; checkTime += 30) {
-            const ch = Math.floor(checkTime / 60);
-            const cm = checkTime % 60;
-            const checkStr = `${ch.toString().padStart(2, '0')}:${cm.toString().padStart(2, '0')}`;
-            if(booked.includes(checkStr)) {
-                isFree = false;
-                break;
+
+        // 1st Check: Agar aaj ka din hai aur time nikal chuka hai, to slot block karo!
+        if (isToday && time <= currentMinutesOfDay) {
+            isFree = false;
+        } 
+        // 2nd Check: Overlapping / Server Bookings check
+        else {
+            for(let checkTime = time; checkTime < time + duration; checkTime += 30) {
+                const ch = Math.floor(checkTime / 60);
+                const cm = checkTime % 60;
+                const checkStr = `${ch.toString().padStart(2, '0')}:${cm.toString().padStart(2, '0')}`;
+                if(booked.includes(checkStr)) {
+                    isFree = false;
+                    break;
+                }
             }
         }
         
@@ -205,7 +219,8 @@ function renderCalendar() {
     }
 
     const today = new Date();
-    today.setHours(0,0,0,0);
+    // Local aaj ki date set karna for past day disable logic
+    const localTodayStr = new Date(today.getTime() - (today.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
 
     for (let day = 1; day <= daysInMonth; day++) {
         const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
@@ -217,14 +232,14 @@ function renderCalendar() {
         dayDiv.className = 'calendar-day';
         dayDiv.textContent = day;
 
-        if (date < today) {
+        if (dateStr < localTodayStr) {
             dayDiv.className += ' other-month disabled';
         } else if (isMonday(date)) {
             // Monday fully disabled and block clicks
             dayDiv.className += ' off disabled';
             dayDiv.innerHTML = day + '<span class="slot-indicator">OFF</span>';
         } else if (selectedService) {
-            // Dynamic Red/Green Logic
+            // Dynamic Red/Green Logic (Ab time check is mein automatically shamil hai)
             const generatedSlots = generateTimeSlots(selectedService, dateStr);
             const totalSlotsCount = generatedSlots.length;
             const availableSlotsCount = generatedSlots.filter(s => s.isAvailable).length;
@@ -233,7 +248,7 @@ function renderCalendar() {
                 dayDiv.className += ' available';
                 dayDiv.innerHTML = day + '<span class="slot-indicator">✓</span>';
             } else if (totalSlotsCount > 0 && availableSlotsCount === 0) {
-                dayDiv.className += ' booked disabled'; // Poora din full
+                dayDiv.className += ' booked disabled'; // Poora din full ya past time ho chuka
                 dayDiv.innerHTML = day + '<span class="slot-indicator">●</span>';
             }
 
@@ -264,7 +279,7 @@ function renderCalendar() {
 
 function selectDate(dateStr, availableSlotsCount) {
     if (availableSlotsCount === 0) {
-        showToast('This day is completely booked. Please choose another date.', 'error');
+        showToast('This day is completely booked or time has passed. Please choose another date.', 'error');
         return;
     }
 
