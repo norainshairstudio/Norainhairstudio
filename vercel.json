@@ -16,12 +16,12 @@
       "destination": "/api/server.js"
     },
     {
-      "source": "/login",
-      "destination": "/public/login.html"
+      "source": "/dashboard",
+      "destination": "/api/server.js"
     },
     {
-      "source": "/dashboard",
-      "destination": "/public/admin.html"
+      "source": "/login",
+      "destination": "/public/login.html"
     },
     {
       "source": "/(.*)",
