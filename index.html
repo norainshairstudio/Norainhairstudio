@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Norain Hair Salon</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+</head>
+<body>
+    <div id="loading">
+        <div class="spinner"></div>
+    </div>
+
+    <nav id="navbar">
+        <div class="nav-container">
+            <div class="logo">Norain Hair Salon</div>
+            <ul class="nav-links">
+                <li><a href="#hero">Home</a></li>
+                <li><a href="#services">Services</a></li>
+                <li><a href="#booking">Book Now</a></li>
+                <li><a href="#gallery">Gallery</a></li>
+                <li><a href="#about">About</a></li>
+                <li><a href="#testimonials">Testimonials</a></li>
+            </ul>
+            <button class="book-btn" onclick="scrollToBooking()">Book Appointment</button>
+        </div>
+    </nav>
+
+    <section id="hero">
+        <div class="hero-content">
+            <h1>Norain Hair Salon</h1>
+            <p>Precision. Style. Confidence.</p>
+            <button class="cta-btn" onclick="scrollToBooking()">Book Appointment</button>
+        </div>
+        <div class="scroll-indicator">
+            <div class="scroll-line"></div>
+            <div class="scroll-dot"></div>
+        </div>
+    </section>
+
+    <section id="services">
+        <div class="container">
+            <h2>Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <div class="service-icon">✂️</div>
+                    <h3>Hair Cutting</h3>
+                    <p>30 minutes</p>
+                </div>
+                <div class="service-card">
+                    <div class="service-icon">🪒</div>
+                    <h3>Hair Cutting + Shave</h3>
+                    <p>60 minutes</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="booking">
+        <div class="container">
+            <h2>Reserve Your Appointment</h2>
+            <div class="booking-wrapper">
+                <div class="booking-form-left">
+                    <form id="booking-form">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <input type="text" id="name" placeholder="Enter your name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="phone">Phone Number</label>
+                            <input type="tel" id="phone" placeholder="+92300-1234567" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="service">Select Service</label>
+                            <div class="service-selector">
+                                <label class="radio-label">
+                                    <input type="radio" name="service" value="Hair Cutting" required>
+                                    <span class="radio-custom">✂️</span>
+                                    <div>
+                                        <div class="service-name">Hair Cutting</div>
+                                        <div class="service-time">30 minutes</div>
+                                    </div>
+                                </label>
+                                <label class="radio-label">
+                                    <input type="radio" name="service" value="Hair Cutting + Shave" required>
+                                    <span class="radio-custom">🪒</span>
+                                    <div>
+                                        <div class="service-name">Hair Cutting + Shave</div>
+                                        <div class="service-time">60 minutes</div>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+                        <button type="submit" class="submit-btn" style="display: none;" id="submit-hidden"></button>
+                    </form>
+                </div>
+
+                <div class="booking-calendar-right">
+                    <div class="calendar-header">
+                        <button id="prev-month" class="month-btn">←</button>
+                        <h3 id="current-month">April 2024</h3>
+                        <button id="next-month" class="month-btn">→</button>
+                    </div>
+                    <div id="calendar" class="calendar-grid"></div>
+                    
+                    <div class="time-slots-container" id="time-slots-container" style="display: none;">
+                        <h4>Available Times</h4>
+                        <div class="time-slots-grid" id="time-slots-grid"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="booking-summary" class="booking-summary" style="display: none;">
+                <div class="summary-card">
+                    <h4>Booking Summary</h4>
+                    <div class="summary-item">
+                        <span>Service:</span>
+                        <strong id="summary-service"></strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Date:</span>
+                        <strong id="summary-date"></strong>
+                    </div>
+                    <div class="summary-item">
+                        <span>Time:</span>
+                        <strong id="summary-time"></strong>
+                    </div>
+                    <button class="submit-btn" onclick="confirmBooking()">Confirm & WhatsApp</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="gallery">
+        <div class="container">
+            <h2>Gallery</h2>
+            <div class="gallery-grid">
+                <div class="gallery-item"><img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?w=400" alt="Salon interior"></div>
+                <div class="gallery-item"><img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?w=400" alt="Barber at work"></div>
+                <div class="gallery-item"><img src="https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400" alt="Luxury salon"></div>
+                <div class="gallery-item"><img src="https://images.unsplash.com/photo-1582095133179-bfd08e2fc6b3?w=400" alt="Hair styling"></div>
+                <div class="gallery-item"><img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?w=400" alt="Modern barber chair"></div>
+                <div class="gallery-item"><img src="https://images.unsplash.com/photo-1622296089863-9a7a7d7b4c9a?w=400" alt="Grooming tools"></div>
+            </div>
+        </div>
+    </section>
+
+    <section id="about">
+        <div class="container">
+            <h2>About Us</h2>
+            <p>Norain Hair Salon delivers precision grooming with modern style. Experience luxury, comfort, and expert craftsmanship.</p>
+        </div>
+    </section>
+
+    <section id="testimonials">
+        <div class="container">
+            <h2>What Our Clients Say</h2>
+            <div class="testimonial-carousel">
+                <div class="testimonial">
+                    <p>"Exceptional service and attention to detail. My hair has never looked better!"</p>
+                    <cite>- John D.</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"The atmosphere is luxurious and the staff is professional. Highly recommend!"</p>
+                    <cite>- Mike R.</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"Best haircut I've ever had. The precision and style are unmatched."</p>
+                    <cite>- Alex T.</cite>
+                </div>
+                <div class="testimonial">
+                    <p>"From the moment I walked in, I felt pampered. Will definitely return."</p>
+                    <cite>- David L.</cite>
+                </div>
+            </div>
+            <div class="carousel-dots">
+                <span class="dot active" data-slide="0"></span>
+                <span class="dot" data-slide="1"></span>
+                <span class="dot" data-slide="2"></span>
+                <span class="dot" data-slide="3"></span>
+            </div>
+        </div>
+    </section>
+
+    <footer id="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>Contact Us</h3>
+                    <p>Phone: +1 (555) 123-4567</p>
+                    <p>Address: 123 Luxury Ave, City, State 12345</p>
+                </div>
+                <div class="footer-section">
+                    <h3>Follow Us</h3>
+                    <div class="social-icons">
+                        <a href="#" aria-label="Facebook">📘</a>
+                        <a href="#" aria-label="Instagram">📷</a>
+                        <a href="#" aria-label="Twitter">🐦</a>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <a href="https://wa.me/03152267614?text=Hello%20Norain%20Hair%20Salon" class="whatsapp-btn">💬 WhatsApp</a>
+                </div>
+            </div>
+            <div class="copyright">
+                <p>&copy; 2024 Norain Hair Salon. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <button id="floating-book-btn" onclick="scrollToBooking()">Book Now</button>
+
+    <script src="script.js"></script>
+</body>
+</html>

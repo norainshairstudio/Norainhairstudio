@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Norain Admin Dashboard</title>
+    <link rel="stylesheet" href="admin.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="admin-shell">
+        <header class="admin-header">
+            <div>
+                <div class="brand">Norain Hair Salon</div>
+                <div class="subtitle">Owner Dashboard • Full screen appointment view</div>
+            </div>
+            <div class="header-controls">
+                <div class="summary-pill pending-pill">Pending: <span id="pending-count">0</span></div>
+                <div class="summary-pill accepted-pill">Accepted: <span id="accepted-count">0</span></div>
+                <button id="change-password-btn" class="change-password-btn">Change Password</button>
+                <button id="logout-btn" class="logout-btn">Logout</button>
+            </div>
+        </header>
+
+        <section class="admin-main">
+            <aside class="admin-panel requests-panel">
+                <div class="panel-top">
+                    <h2>Live Requests</h2>
+                    <div class="request-badge" id="request-badge">0</div>
+                </div>
+                <div class="request-note">New appointment requests will appear here automatically.</div>
+                <div class="today-summary">
+                    <h3>Today's Appointments</h3>
+                    <div id="today-list" class="today-list"></div>
+                </div>
+                <div class="request-list" id="request-list"></div>
+            </aside>
+
+            <main class="admin-calendar-panel">
+                <div class="day-toolbar">
+                    <button id="prev-day" class="day-nav">← Previous Day</button>
+                    <div class="day-label" id="current-day"></div>
+                    <button id="next-day" class="day-nav">Next Day →</button>
+                </div>
+                <div class="day-detail" id="day-detail">
+                    <div class="day-detail-header">
+                        <div>
+                            <div class="detail-title" id="detail-title">Today's Appointments</div>
+                            <div class="detail-subtitle" id="detail-subtitle">Select a day to view appointments.</div>
+                        </div>
+                        <div class="day-status" id="day-status"></div>
+                    </div>
+                    <div class="day-detail-list" id="day-detail-list"></div>
+                </div>
+            </main>
+        </section>
+
+        <div class="notification popup hidden" id="notification">
+            <div>
+                <strong>New Booking Received</strong>
+                <p id="notification-text">A new appointment has arrived.</p>
+            </div>
+            <button id="notification-action" class="confirm-btn">Accept</button>
+        </div>
+
+        <div class="modal hidden" id="password-modal">
+            <div class="modal-content">
+                <h3>Change Password</h3>
+                <form id="password-form">
+                    <div class="form-group">
+                        <label for="current-password">Current Password</label>
+                        <input type="password" id="current-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="new-password">New Password</label>
+                        <input type="password" id="new-password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirm-password">Confirm New Password</label>
+                        <input type="password" id="confirm-password" required>
+                    </div>
+                    <button type="submit" class="confirm-btn">Change Password</button>
+                    <button type="button" id="cancel-password" class="cancel-btn">Cancel</button>
+                </form>
+                <div id="password-message" class="message"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>
