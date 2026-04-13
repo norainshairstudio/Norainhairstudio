@@ -10,10 +10,8 @@
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fc; margin: 0; padding: 20px; color: #2d3748; }
         .dashboard-container { max-width: 1200px; margin: 0 auto; }
         
-        /* Header styling with Bigger Logo */
         .header { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 15px 30px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .header-logo { display: flex; align-items: center; gap: 15px; }
-        /* Logo Size Increased */
         .header-logo img { height: 75px; width: auto; object-fit: contain; }
         .header-logo h1 { margin: 0; font-family: 'Playfair Display', serif; font-size: 26px; color: #1a202c; }
         
@@ -65,29 +63,26 @@
         .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 320px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .modal-content input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e0; border-radius: 6px; background: #fff; color: #2d3748; box-sizing: border-box; }
         
-        /* BARA AnA Softechs Branding Footer */
-        .admin-footer { 
-            text-align: center; 
-            margin-top: 40px; 
-            padding: 30px; 
-            background: #ffffff;
-            border: 2px solid #d4af37; 
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15);
-        }
-        .admin-footer span {
-            display: block;
-            color: #718096;
-            font-size: 16px;
-            margin-bottom: 8px;
-            text-transform: uppercase;
-            letter-spacing: 2px;
-        }
-        .admin-footer strong { 
-            color: #d4af37; 
-            font-size: 32px; /* Bara size */
-            font-family: 'Playfair Display', serif;
-            letter-spacing: 1px;
+        .admin-footer { text-align: center; margin-top: 40px; padding: 30px; background: #ffffff; border: 2px solid #d4af37; border-radius: 12px; box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15); }
+        .admin-footer span { display: block; color: #718096; font-size: 16px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
+        .admin-footer strong { color: #d4af37; font-size: 32px; font-family: 'Playfair Display', serif; letter-spacing: 1px; }
+
+        /* ADMIN DASHBOARD MOBILE RESPONSIVE LOGIC */
+        @media (max-width: 768px) {
+            body { padding: 10px; }
+            .header { flex-direction: column; align-items: flex-start; gap: 15px; padding: 15px; }
+            .btn-group { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
+            .btn-group button { margin: 0; flex: 1; }
+            
+            .main-grid { grid-template-columns: 1fr; gap: 15px; }
+            .stats-grid { grid-template-columns: 1fr; gap: 15px; }
+            
+            .filter-controls { flex-direction: column; align-items: stretch; }
+            .filter-controls > div { width: 100%; }
+            .filter-controls input { width: 100%; box-sizing: border-box; }
+            
+            .calendar-nav h2 { font-size: 18px !important; }
+            .calendar-nav button { padding: 8px 10px; font-size: 14px; }
         }
     </style>
 </head>
@@ -160,13 +155,13 @@
                     <label>To Date</label>
                     <input type="date" id="filter-to-date">
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button id="filter-btn" class="btn-gold">Filter</button>
-                    <button id="clear-filter-btn" style="background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0;">Clear</button>
-                    <button id="export-btn" style="background: #10B981; color: #fff;">📥 Excel Export</button>
+                <div style="display: flex; gap: 10px; width: 100%;">
+                    <button id="filter-btn" class="btn-gold" style="flex: 1;">Filter</button>
+                    <button id="clear-filter-btn" style="background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; flex: 1;">Clear</button>
                 </div>
+                <button id="export-btn" style="background: #10B981; color: #fff; width: 100%; margin-top: 10px;">📥 Excel Export</button>
             </div>
-            <div id="all-requests-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;"></div>
+            <div id="all-requests-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>
         </div>
         
         <div class="admin-footer">
