@@ -314,3 +314,29 @@ document.querySelectorAll('.service-card').forEach(card => {
         scrollToBooking();
     });
 });
+
+// ====== MOBILE MENU TOGGLE LOGIC ======
+const mobileBtn = document.querySelector('.mobile-menu-btn');
+const closeMenuBtn = document.querySelector('.close-menu-btn');
+const navLinks = document.querySelector('.nav-links');
+const navItems = document.querySelectorAll('.nav-item');
+
+if(mobileBtn && navLinks) {
+    mobileBtn.addEventListener('click', () => {
+        navLinks.classList.add('active');
+        document.body.style.overflow = 'hidden'; // Stop scrolling when menu is open
+    });
+    
+    closeMenuBtn.addEventListener('click', () => {
+        navLinks.classList.remove('active');
+        document.body.style.overflow = 'auto'; // Re-enable scrolling
+    });
+
+    // Close menu when a link is clicked
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            navLinks.classList.remove('active');
+            document.body.style.overflow = 'auto';
+        });
+    });
+}

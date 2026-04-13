@@ -68,7 +68,7 @@ h1, h2, h3, h4 {
     100% { transform: rotate(360deg); }
 }
 
-/* Navbar - Made completely white and static */
+/* Navbar */
 #navbar {
     position: fixed;
     top: 0;
@@ -81,7 +81,6 @@ h1, h2, h3, h4 {
     box-shadow: var(--shadow-sm);
 }
 
-/* Add Scrolled Class Properties Here */
 #navbar.scrolled {
     background: var(--gold-accent);
     border-bottom: none;
@@ -94,10 +93,9 @@ h1, h2, h3, h4 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 75px; /* HEIGHT WAPAS NORMAL KAR DI HAI TAAKAY PADDING ZYADA NA LAGAY */
+    height: 75px; 
 }
 
-/* Updated Logo Styling - Smartly Scaled */
 .logo {
     display: flex;
     align-items: center;
@@ -108,7 +106,7 @@ h1, h2, h3, h4 {
     height: 60px;
     width: auto;
     object-fit: contain;
-    transform: scale(1.6); /* BARA KAR DIYA bina navbar ki height kharab kiye */
+    transform: scale(1.6); 
     transform-origin: left center;
 }
 
@@ -129,15 +127,13 @@ h1, h2, h3, h4 {
     color: var(--gold-accent);
 }
 
-/* Scrolled Text Colors */
 #navbar.scrolled .nav-links a {
     color: white;
 }
 #navbar.scrolled .nav-links a:hover {
-    color: var(--primary-bg); /* slightly dim on hover */
+    color: var(--primary-bg); 
 }
 
-/* Button in Navbar */
 .book-btn {
     background: var(--gold-accent);
     color: white;
@@ -154,7 +150,6 @@ h1, h2, h3, h4 {
     box-shadow: var(--shadow);
 }
 
-/* Toggle button styling when scrolled */
 #navbar.scrolled .book-btn {
     background: white;
     color: var(--gold-accent);
@@ -164,7 +159,12 @@ h1, h2, h3, h4 {
     background: var(--primary-bg);
 }
 
-/* Hero Updated for Banner and Left Align */
+/* Close Button (Hidden on Desktop) */
+.close-menu-btn {
+    display: none;
+}
+
+/* Hero Section */
 #hero {
     height: 100vh;
     background: url('banner.jpeg') center/cover no-repeat;
@@ -918,6 +918,7 @@ h1, h2, h3, h4 {
     cursor: pointer; 
     color: var(--text-color); 
 }
+
 #navbar.scrolled .mobile-menu-btn { 
     color: white; 
 }
@@ -946,36 +947,65 @@ h1, h2, h3, h4 {
         display: none; 
     }
     
+    /* --- FULL SCREEN OVERLAY MENU --- */
     .nav-links {
-        display: none; /* Hidden by default on mobile */
+        position: fixed;
+        top: 0;
+        left: -100%; /* Hidden off-screen initially */
+        width: 100vw;
+        height: 100vh;
+        background: #000000; /* Pure black */
+        display: flex;
         flex-direction: column;
-        position: absolute;
-        top: 75px;
-        left: 0;
-        width: 100%;
-        background: rgba(255, 255, 255, 0.98);
-        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-        padding: 20px 0;
-        gap: 15px;
-        text-align: center;
+        justify-content: center;
+        align-items: center;
+        gap: 30px;
+        transition: 0.4s ease-in-out;
+        z-index: 2000;
     }
     
-    /* When active class is toggled via JS */
     .nav-links.active { 
-        display: flex; 
-    }
-    
-    #navbar.scrolled .nav-links { 
-        background: var(--gold-accent); 
+        left: 0; 
     }
     
     .nav-links a { 
-        font-size: 1.1rem; 
+        font-size: 1.8rem; 
+        color: #ffffff !important; 
+        font-family: 'Playfair Display', serif;
+        text-transform: uppercase;
+        letter-spacing: 2px;
     }
     
+    .nav-links a:hover {
+        color: var(--gold-accent) !important;
+    }
+    
+    /* Close Button inside menu */
+    .close-menu-btn {
+        display: block;
+        position: absolute;
+        top: 30px;
+        right: 30px;
+        font-size: 30px;
+        color: var(--gold-accent);
+        cursor: pointer;
+    }
+
     .mobile-only-btn { 
         display: block; 
-        margin-top: 10px; 
+        margin-top: 20px; 
+    }
+    
+    .mobile-only-btn .book-btn {
+        background: transparent;
+        border: 2px solid var(--gold-accent);
+        padding: 15px 40px;
+        font-size: 1.2rem;
+    }
+
+    /* Fixed Hero Image on Mobile (Banda ab dikhega) */
+    #hero {
+        background-position: right center; /* Focus on the right side of the image */
     }
 
     /* Text Adjustments */
