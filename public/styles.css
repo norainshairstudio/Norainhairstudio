@@ -68,7 +68,7 @@ h1, h2, h3, h4 {
     100% { transform: rotate(360deg); }
 }
 
-/* Navbar - Updated Logic */
+/* Navbar - Made completely white and static */
 #navbar {
     position: fixed;
     top: 0;
@@ -94,20 +94,22 @@ h1, h2, h3, h4 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 100px; /* Thori height barhai taakay bara logo fit ho sakay */
+    height: 75px; /* HEIGHT WAPAS NORMAL KAR DI HAI TAAKAY PADDING ZYADA NA LAGAY */
 }
 
+/* Updated Logo Styling - Smartly Scaled */
 .logo {
     display: flex;
     align-items: center;
     text-decoration: none;
 }
 
-/* WEBSITE LOGO SIZE BARA KAR DIYA */
 .logo-img {
-    height: 80px; /* Size 60px se 80px kar diya hai */
+    height: 60px;
     width: auto;
     object-fit: contain;
+    transform: scale(1.6); /* BARA KAR DIYA bina navbar ki height kharab kiye */
+    transform-origin: left center;
 }
 
 .nav-links {
