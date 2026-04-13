@@ -5,16 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Norain Salon - Premium Admin Portal</title>
     <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         /* Premium Shine White Theme */
         body { font-family: 'Inter', sans-serif; background-color: #f8f9fc; margin: 0; padding: 20px; color: #2d3748; }
-        .dashboard-container { max-width: 1200px; margin: 0 auto; }
+        .dashboard-container { max-width: 1200px; margin: 0 auto; overflow-x: hidden; }
         
         .header { display: flex; justify-content: space-between; align-items: center; background: #ffffff; padding: 15px 30px; border-radius: 12px; margin-bottom: 25px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
         .header-logo { display: flex; align-items: center; gap: 15px; }
-        .header-logo img { height: 75px; width: auto; object-fit: contain; }
+        .header-logo img { height: 60px; width: auto; object-fit: contain; }
         .header-logo h1 { margin: 0; font-family: 'Playfair Display', serif; font-size: 26px; color: #1a202c; }
         
+        .admin-mobile-menu-btn { display: none; font-size: 28px; cursor: pointer; color: #2d3748; }
+        .close-admin-menu-btn { display: none; }
+
+        .btn-group { display: flex; align-items: center; }
         .btn-group button { padding: 10px 18px; margin-left: 10px; cursor: pointer; border: none; border-radius: 6px; font-weight: 600; transition: 0.3s; }
         .btn-gold { background: #d4af37; color: #fff; }
         .btn-gold:hover { background: #b5952f; box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3); }
@@ -63,17 +68,51 @@
         .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 320px; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1); }
         .modal-content input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #cbd5e0; border-radius: 6px; background: #fff; color: #2d3748; box-sizing: border-box; }
         
-        .admin-footer { text-align: center; margin-top: 40px; padding: 30px; background: #ffffff; border: 2px solid #d4af37; border-radius: 12px; box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15); }
+        /* BARA AnA Softechs Branding Footer */
+        .admin-footer { 
+            text-align: center; 
+            margin-top: 40px; 
+            padding: 30px; 
+            background: #ffffff;
+            border: 2px solid #d4af37; 
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(212, 175, 55, 0.15);
+        }
         .admin-footer span { display: block; color: #718096; font-size: 16px; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 2px; }
         .admin-footer strong { color: #d4af37; font-size: 32px; font-family: 'Playfair Display', serif; letter-spacing: 1px; }
 
         /* ADMIN DASHBOARD MOBILE RESPONSIVE LOGIC */
         @media (max-width: 768px) {
             body { padding: 10px; }
-            .header { flex-direction: column; align-items: flex-start; gap: 15px; padding: 15px; }
-            .btn-group { display: flex; flex-wrap: wrap; gap: 10px; width: 100%; }
-            .btn-group button { margin: 0; flex: 1; }
+            .header { padding: 15px; flex-wrap: wrap; }
             
+            /* Logo resizing for mobile */
+            .header-logo img { height: 45px; }
+            .header-logo h1 { font-size: 18px; }
+            
+            .admin-mobile-menu-btn { display: block; }
+            
+            /* Hidden Slide-out Menu */
+            .btn-group {
+                position: fixed;
+                top: 0; right: -100%;
+                width: 250px; height: 100vh;
+                background: #111; /* Dark theme menu like screenshot */
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 20px;
+                transition: 0.4s ease-in-out;
+                z-index: 2000;
+                box-shadow: -5px 0 15px rgba(0,0,0,0.5);
+            }
+            .btn-group.active { right: 0; }
+            
+            .btn-group button { margin: 0; width: 80%; padding: 15px; font-size: 16px; }
+            
+            /* Close Button inside menu */
+            .close-admin-menu-btn { display: block; position: absolute; top: 20px; right: 25px; font-size: 30px; color: #d4af37; cursor: pointer; font-weight: bold; }
+
             .main-grid { grid-template-columns: 1fr; gap: 15px; }
             .stats-grid { grid-template-columns: 1fr; gap: 15px; }
             
@@ -81,8 +120,10 @@
             .filter-controls > div { width: 100%; }
             .filter-controls input { width: 100%; box-sizing: border-box; }
             
-            .calendar-nav h2 { font-size: 18px !important; }
-            .calendar-nav button { padding: 8px 10px; font-size: 14px; }
+            /* FIXED: Calendar Nav on Mobile */
+            .calendar-nav { flex-wrap: wrap; justify-content: center; gap: 15px; }
+            .calendar-nav h2 { order: -1; width: 100%; text-align: center; font-size: 20px !important; margin-bottom: 5px !important; }
+            .calendar-nav button { flex: 1; padding: 10px; font-size: 14px; }
         }
     </style>
 </head>
@@ -96,7 +137,11 @@
                 <img src="logo.png" alt="Norain Salon Logo">
                 <h1>Norain Premium Dashboard</h1>
             </div>
+            
+            <div class="admin-mobile-menu-btn">☰</div>
+            
             <div class="btn-group">
+                <div class="close-admin-menu-btn">✖</div>
                 <button id="view-all-btn" class="btn-gold">Reports</button>
                 <button id="change-password-btn" class="btn-gold">Settings</button>
                 <button id="logout-btn" class="btn-danger">Logout</button>
@@ -159,7 +204,7 @@
                     <button id="filter-btn" class="btn-gold" style="flex: 1;">Filter</button>
                     <button id="clear-filter-btn" style="background: #edf2f7; color: #4a5568; border: 1px solid #cbd5e0; flex: 1;">Clear</button>
                 </div>
-                <button id="export-btn" style="background: #10B981; color: #fff; width: 100%; margin-top: 10px;">📥 Excel Export</button>
+                <button id="export-btn" style="background: #10B981; color: #fff; width: 100%; margin-top: 10px;">📥 Download .xlsx Excel</button>
             </div>
             <div id="all-requests-list" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;"></div>
         </div>
