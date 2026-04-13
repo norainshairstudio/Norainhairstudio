@@ -49,7 +49,6 @@ function scrollToBooking() { document.getElementById('booking').scrollIntoView({
 
 window.addEventListener('scroll', () => {
     const navbar = document.getElementById('navbar');
-    // Using class toggle for better CSS control
     if (window.scrollY > 100) {
         navbar.classList.add('scrolled');
     } else {
@@ -60,6 +59,13 @@ window.addEventListener('scroll', () => {
 const workingHours = { start: 12, end: 22 };
 const services = { 'Hair Cutting': 30, 'Shave': 30, 'Hair Cutting + Shave': 60 };
 
+// NAYA: Services Pricing
+const prices = {
+    'Hair Cutting': 400,
+    'Shave': 300,
+    'Hair Cutting + Shave': 650
+};
+
 let bookedSlotsData = {};
 let closedDaysData = [];
 
@@ -67,6 +73,8 @@ let currentDate = new Date();
 let selectedDate = null;
 let selectedTime = null;
 let selectedService = null;
+let paymentBase64 = null;
+let lastBookingData = null; // Token print karne ke liye
 
 async function fetchRealAppointments() {
     try {
@@ -239,12 +247,45 @@ function renderTimeSlots() {
 function updateSummary() {
     if (selectedService && selectedDate && selectedTime) {
         document.getElementById('summary-service').textContent = selectedService;
+        document.getElementById('summary-price').textContent = 'Rs. ' + prices[selectedService];
+        
         const d = new Date(selectedDate);
         document.getElementById('summary-date').textContent = new Date(d.getTime() + d.getTimezoneOffset() * 60000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         document.getElementById('summary-time').textContent = document.querySelector('.time-slot.selected')?.textContent || selectedTime;
+        
+        // Resetting Payment Box
+        const confirmBtn = document.getElementById('confirm-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.classList.add('disabled-btn');
+        confirmBtn.style.display = 'block';
+        
+        document.getElementById('payment-box').style.display = 'block';
+        document.getElementById('download-token-btn').style.display = 'none';
+        document.getElementById('file-name').textContent = '';
+        paymentBase64 = null;
+        document.getElementById('payment-screenshot').value = '';
+
         document.getElementById('booking-summary').style.display = 'block';
     }
 }
+
+// NAYA: File Upload Listener
+document.getElementById('payment-screenshot')?.addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        document.getElementById('file-name').textContent = '✅ Attached: ' + file.name;
+        
+        const btn = document.getElementById('confirm-btn');
+        btn.disabled = false;
+        btn.classList.remove('disabled-btn');
+        
+        const reader = new FileReader();
+        reader.onload = function(event) {
+            paymentBase64 = event.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+});
 
 function initializeBooking() {
     fetchRealAppointments();
@@ -264,27 +305,29 @@ function initializeBooking() {
     renderCalendar();
 }
 
-// ----- UPDATED: ERROR HANDLING BEHTAR KI HAI -----
 async function confirmBooking() {
     const name = document.getElementById('name').value;
     const phone = document.getElementById('phone').value;
 
     if (!name || !phone) return showToast('Please fill in your name and phone!', 'error');
     if (!selectedService || !selectedDate || !selectedTime) return showToast('Choose service, date & time!', 'error');
+    if (!paymentBase64) return showToast('Please upload payment screenshot first!', 'error');
 
-    // Button ko disable karo taakay double click na ho
-    const btn = document.querySelector('.submit-btn');
-    btn.textContent = 'Sending...';
+    const btn = document.getElementById('confirm-btn');
+    btn.textContent = 'Verifying and Sending...';
     btn.disabled = true;
+    btn.classList.add('disabled-btn');
 
     const appointment = { 
         id: `appt-${Date.now()}`, 
         name, 
         phone, 
-        service: selectedService, 
+        service: selectedService,
+        price: prices[selectedService],
         date: selectedDate, 
         time: selectedTime, 
         status: 'pending', 
+        paymentImage: paymentBase64, // Sending base64 image to server
         createdAt: new Date().toISOString() 
     };
 
@@ -296,32 +339,110 @@ async function confirmBooking() {
         });
 
         if (!res.ok) {
-            // Error detailed check karega
             const errorText = await res.text();
             console.error("Backend Error:", errorText);
             throw new Error(`Server Error ${res.status}`);
         }
 
-        showToast('Booking sent! Norain Salon will confirm.', 'success');
+        const resData = await res.json();
+        showToast('Payment sent! Booking pending verification.', 'success');
         
-        // Reset System
+        // Save for token printing
+        lastBookingData = { ...appointment, tokenId: resData.tokenId, displayTime: document.querySelector('.time-slot.selected')?.textContent };
+
+        // Hide payment box and submit btn, show download btn
+        document.getElementById('payment-box').style.display = 'none';
+        btn.style.display = 'none';
+        document.getElementById('download-token-btn').style.display = 'block';
+
+        // Clear forms
         selectedService = selectedDate = selectedTime = null;
         document.querySelectorAll('input[name="service"]').forEach(el => el.checked = false);
         document.getElementById('name').value = '';
         document.getElementById('phone').value = '';
-        document.getElementById('time-slots-container').style.display = 'none';
-        document.getElementById('booking-summary').style.display = 'none';
         
         fetchRealAppointments();
 
     } catch (error) {
-        showToast('Problem sending request. Backend might be down or busy.', 'error');
+        showToast('Problem sending data. File too large or server down.', 'error');
         console.error("Fetch Request Failed:", error);
-    } finally {
-        // Button ko wapis normal karo
-        btn.textContent = 'Confirm Booking at Norain';
+        btn.textContent = 'Submit Payment & Book';
         btn.disabled = false;
+        btn.classList.remove('disabled-btn');
     }
+}
+
+// NAYA: Token Generate & Download Logic
+function downloadToken() {
+    if (!lastBookingData) return;
+    
+    // Create a temporary canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 400;
+    canvas.height = 550;
+    const ctx = canvas.getContext('2d');
+    
+    // Background and Border
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = '#c9a961';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(10, 10, 380, 530);
+    
+    // Header
+    ctx.fillStyle = '#1a1a1a';
+    ctx.fillRect(12, 12, 376, 90);
+    
+    ctx.fillStyle = '#c9a961';
+    ctx.font = 'bold 26px "Playfair Display", serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('NORAIN HAIR SALON', 200, 55);
+    
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '14px Inter, sans-serif';
+    ctx.fillText('Official Appointment Token', 200, 80);
+    
+    // Token ID
+    ctx.fillStyle = '#1a1a1a';
+    ctx.font = 'bold 40px Inter, sans-serif';
+    ctx.fillText(`TOKEN: #${lastBookingData.tokenId}`, 200, 160);
+    
+    // Detail Labels
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#666666';
+    ctx.font = '16px Inter, sans-serif';
+    
+    let y = 230;
+    const details = [
+        `Name:  ${lastBookingData.name}`,
+        `Phone:  ${lastBookingData.phone}`,
+        `Service:  ${lastBookingData.service}`,
+        `Amount Paid:  Rs. ${lastBookingData.price}`,
+        `Date:  ${new Date(lastBookingData.date).toLocaleDateString()}`,
+        `Time:  ${lastBookingData.displayTime}`
+    ];
+    
+    details.forEach(text => {
+        ctx.fillStyle = text.includes('Amount') ? '#10B981' : '#333333';
+        ctx.fillText(text, 40, y);
+        y += 40;
+    });
+    
+    // Footer / Status
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#e74c3c'; // Pending color
+    ctx.font = 'bold 20px Inter, sans-serif';
+    ctx.fillText('STATUS: PENDING VERIFICATION', 200, 485);
+    
+    ctx.fillStyle = '#c9a961';
+    ctx.font = '12px Inter, sans-serif';
+    ctx.fillText('Please show this slip at the salon counter.', 200, 515);
+    
+    // Trigger the Download
+    const link = document.createElement('a');
+    link.download = `Norain_Token_${lastBookingData.tokenId}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeBooking);
@@ -355,7 +476,6 @@ document.querySelectorAll('.service-card').forEach(card => {
     });
 });
 
-// ====== MOBILE MENU TOGGLE LOGIC ======
 const mobileBtn = document.querySelector('.mobile-menu-btn');
 const closeMenuBtn = document.querySelector('.close-menu-btn');
 const navLinks = document.querySelector('.nav-links');
@@ -364,15 +484,14 @@ const navItems = document.querySelectorAll('.nav-item');
 if(mobileBtn && navLinks) {
     mobileBtn.addEventListener('click', () => {
         navLinks.classList.add('active');
-        document.body.style.overflow = 'hidden'; // Stop scrolling when menu is open
+        document.body.style.overflow = 'hidden'; 
     });
     
     closeMenuBtn.addEventListener('click', () => {
         navLinks.classList.remove('active');
-        document.body.style.overflow = 'auto'; // Re-enable scrolling
+        document.body.style.overflow = 'auto'; 
     });
 
-    // Close menu when a link is clicked
     navItems.forEach(item => {
         item.addEventListener('click', () => {
             navLinks.classList.remove('active');

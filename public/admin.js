@@ -77,19 +77,25 @@ function renderDayDetail() {
 
         const card = document.createElement('div');
         card.className = 'detail-card';
-        card.innerHTML = `<div class="meta"><span>${req.name}</span><span style="color:#2d3748; font-weight: bold;">${formatTimeDisplay(req.time)}</span></div>
+        card.innerHTML = `
+            <div class="meta"><span>${req.name}</span><span style="color:#2d3748; font-weight: bold;">${formatTimeDisplay(req.time)}</span></div>
             <h3 style="margin:5px 0; color:#d4af37;">${req.service}</h3>
-            <p style="margin:5px 0; color:#4a5568;">Phone: ${req.phone}</p>`;
+            <p style="margin:5px 0; color:#4a5568;">Phone: ${req.phone}</p>
+            <div style="margin-bottom:10px;"><span style="font-size: 11px; background:#1a202c; color:#d4af37; padding:3px 8px; border-radius:4px; font-weight:bold;">Token #${req.tokenId || 'N/A'}</span></div>
+        `;
+
+        // NAYA: Payment Screenshot Button
+        let viewImgBtn = '';
+        if(req.paymentImage) {
+            viewImgBtn = `<button onclick="viewPaymentImage('${req.id}')" style="background:#1a202c; color:#d4af37; border:none; padding:8px; border-radius:6px; cursor:pointer; width:100%; margin-bottom:10px; font-weight:bold;">📸 View Payment Screenshot</button>`;
+        }
 
         if (req.status === 'pending') {
-            const btns = document.createElement('div');
-            btns.className = 'action-btns';
-            btns.innerHTML = `<button class="confirm-btn">Accept</button><button class="reject-btn">Reject</button>`;
-            btns.querySelector('.confirm-btn').onclick = () => updateStatus(req.id, 'accepted');
-            btns.querySelector('.reject-btn').onclick = () => updateStatus(req.id, 'rejected');
-            card.appendChild(btns);
+            const actions = document.createElement('div');
+            actions.innerHTML = viewImgBtn + `<div class="action-btns"><button class="confirm-btn" onclick="updateStatus('${req.id}', 'accepted')">Accept</button><button class="reject-btn" onclick="updateStatus('${req.id}', 'rejected')">Reject</button></div>`;
+            card.appendChild(actions);
         } else {
-            card.innerHTML += `<p style="color: #10B981; font-weight:600; margin-top:10px; font-size:13px;">✓ Confirmed via WhatsApp</p>`;
+            card.innerHTML += viewImgBtn + `<p style="color: #10B981; font-weight:600; margin-top:10px; font-size:13px;">✓ Confirmed via WhatsApp</p>`;
         }
         detailList.appendChild(card);
     });
@@ -152,7 +158,6 @@ function renderAllRequests(fromDate = null, toDate = null) {
     });
 }
 
-// FIXED: Export to Real Excel (.xlsx) using SheetJS
 function exportToExcel() {
     const fromDate = document.getElementById('filter-from-date')?.value;
     const toDate = document.getElementById('filter-to-date')?.value;
@@ -172,29 +177,26 @@ function exportToExcel() {
         return;
     }
 
-    // Data format for Excel
     const dataToExport = filtered.map(row => ({
-        "Booking ID": row.id,
+        "Token ID": row.tokenId || 'N/A',
         "Customer Name": row.name,
         "Phone Number": row.phone,
         "Service Selected": row.service,
+        "Amount": row.price || 0,
         "Appointment Date": row.date,
         "Time": row.time,
         "Status": row.status.toUpperCase(),
         "Booked On": new Date(row.createdAt).toLocaleString()
     }));
 
-    // Create Worksheet and Workbook
     const worksheet = XLSX.utils.json_to_sheet(dataToExport);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Appointments");
 
-    // Dynamic Filename
     let fileName = "Norain_Appointments";
     if(fromDate || toDate) fileName += `_${fromDate || 'Start'}_to_${toDate || 'End'}`;
     fileName += ".xlsx";
 
-    // Download File
     XLSX.writeFile(workbook, fileName);
 }
 
@@ -206,13 +208,23 @@ function renderRequestList() {
 
     pending.forEach(req => {
         const card = document.createElement('div'); card.className = 'request-card';
-        card.innerHTML = `<div class="meta"><span>${req.name}</span><span style="color:#2d3748; font-weight: bold;">${formatTimeDisplay(req.time)}</span></div>
-            <h3 style="margin:5px 0; color:#d4af37;">${req.service}</h3><p style="margin:5px 0; color:#718096;">Date: ${req.date}</p>`;
-        const btns = document.createElement('div'); btns.className = 'action-btns';
-        btns.innerHTML = `<button class="confirm-btn">Accept</button><button class="reject-btn">Reject</button>`;
-        btns.querySelector('.confirm-btn').onclick = () => updateStatus(req.id, 'accepted');
-        btns.querySelector('.reject-btn').onclick = () => updateStatus(req.id, 'rejected');
-        card.appendChild(btns); list.appendChild(card);
+        card.innerHTML = `
+            <div class="meta"><span>${req.name}</span><span style="color:#2d3748; font-weight: bold;">${formatTimeDisplay(req.time)}</span></div>
+            <h3 style="margin:5px 0; color:#d4af37;">${req.service}</h3>
+            <p style="margin:5px 0; color:#718096;">Date: ${req.date}</p>
+            <div style="margin-bottom:10px;"><span style="font-size: 11px; background:#1a202c; color:#d4af37; padding:3px 8px; border-radius:4px; font-weight:bold;">Token #${req.tokenId || 'N/A'}</span></div>
+        `;
+        
+        let viewImgBtn = '';
+        if(req.paymentImage) {
+            viewImgBtn = `<button onclick="viewPaymentImage('${req.id}')" style="background:#1a202c; color:#d4af37; border:none; padding:8px; border-radius:6px; cursor:pointer; width:100%; margin-bottom:10px; font-weight:bold;">📸 View Screenshot</button>`;
+        }
+
+        const actions = document.createElement('div');
+        actions.innerHTML = viewImgBtn + `<div class="action-btns"><button class="confirm-btn" onclick="updateStatus('${req.id}', 'accepted')">Accept</button><button class="reject-btn" onclick="updateStatus('${req.id}', 'rejected')">Reject</button></div>`;
+        
+        card.appendChild(actions); 
+        list.appendChild(card);
     });
 }
 
@@ -232,6 +244,21 @@ function checkForNewRequests() {
         showToast(`New booking from ${latest.name}!`, 'success');
     }
 }
+
+// NAYA: Image dekhne ka function
+window.viewPaymentImage = function(id) {
+    const app = appointments.find(a => a.id === id);
+    if(app && app.paymentImage) {
+        document.getElementById('payment-proof-img').src = app.paymentImage;
+        document.getElementById('image-modal').classList.remove('hidden');
+    } else {
+        showToast('No screenshot available.', 'error');
+    }
+};
+
+document.getElementById('close-image-btn')?.addEventListener('click', () => {
+    document.getElementById('image-modal').classList.add('hidden');
+});
 
 async function initializeAdmin() {
     await loadAppointments();
@@ -255,7 +282,7 @@ async function initializeAdmin() {
 
     document.getElementById('change-password-btn').onclick = () => {
         document.getElementById('password-modal').classList.remove('hidden');
-        document.querySelector('.btn-group').classList.remove('active'); // Close mobile menu if open
+        document.querySelector('.btn-group').classList.remove('active'); 
     };
     
     document.getElementById('cancel-password').onclick = () => { document.getElementById('password-modal').classList.add('hidden'); document.getElementById('password-form').reset(); };
@@ -263,7 +290,7 @@ async function initializeAdmin() {
     document.getElementById('view-all-btn').onclick = () => { 
         document.getElementById('all-requests-panel').classList.toggle('hidden'); 
         renderAllRequests(); 
-        document.querySelector('.btn-group').classList.remove('active'); // Close mobile menu if open
+        document.querySelector('.btn-group').classList.remove('active'); 
     };
     
     document.getElementById('filter-btn')?.addEventListener('click', () => renderAllRequests(document.getElementById('filter-from-date').value, document.getElementById('filter-to-date').value));
@@ -284,7 +311,6 @@ async function initializeAdmin() {
         if (result.success) setTimeout(() => window.location.href = '/login', 2000);
     };
 
-    // --- MOBILE HAMBURGER MENU LOGIC FOR ADMIN ---
     const adminMobileBtn = document.querySelector('.admin-mobile-menu-btn');
     const adminMenu = document.querySelector('.btn-group');
     const adminCloseBtn = document.querySelector('.close-admin-menu-btn');

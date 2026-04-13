@@ -67,17 +67,17 @@
                 <div class="service-card">
                     <div class="service-icon">✂️</div>
                     <h3>Hair Cutting</h3>
-                    <p>30 minutes</p>
+                    <p>Rs. 400 | 30 minutes</p>
                 </div>
                 <div class="service-card">
                     <div class="service-icon">🧔</div>
                     <h3>Shave</h3>
-                    <p>30 minutes</p>
+                    <p>Rs. 300 | 30 minutes</p>
                 </div>
                 <div class="service-card">
                     <div class="service-icon">🪒</div>
                     <h3>Hair Cutting + Shave</h3>
-                    <p>60 minutes</p>
+                    <p>Rs. 650 | 60 minutes</p>
                 </div>
             </div>
         </div>
@@ -95,7 +95,7 @@
                         </div>
                         <div class="form-group">
                             <label for="phone">Phone Number</label>
-                            <input type="tel" id="phone" placeholder="+92300-1234567" required>
+                            <input type="tel" id="phone" placeholder="03XXXXXXXXX" required>
                         </div>
                         <div class="form-group">
                             <label for="service">Select Service</label>
@@ -103,17 +103,17 @@
                                 <label class="radio-label">
                                     <input type="radio" name="service" value="Hair Cutting" required>
                                     <span class="radio-custom">✂️</span>
-                                    <div><div class="service-name">Hair Cutting</div><div class="service-time">30 minutes</div></div>
+                                    <div><div class="service-name">Hair Cutting</div><div class="service-time">Rs 400</div></div>
                                 </label>
                                 <label class="radio-label">
                                     <input type="radio" name="service" value="Shave" required>
                                     <span class="radio-custom">🧔</span>
-                                    <div><div class="service-name">Shave</div><div class="service-time">30 minutes</div></div>
+                                    <div><div class="service-name">Shave</div><div class="service-time">Rs 300</div></div>
                                 </label>
                                 <label class="radio-label">
                                     <input type="radio" name="service" value="Hair Cutting + Shave" required>
                                     <span class="radio-custom">🪒</span>
-                                    <div><div class="service-name">Hair Cutting + Shave</div><div class="service-time">60 minutes</div></div>
+                                    <div><div class="service-name">Hair Cutting + Shave</div><div class="service-time">Rs 650</div></div>
                                 </label>
                             </div>
                         </div>
@@ -139,9 +139,28 @@
                 <div class="summary-card">
                     <h4>Booking Summary</h4>
                     <div class="summary-item"><span>Service:</span><strong id="summary-service"></strong></div>
+                    <div class="summary-item"><span>Total Amount:</span><strong id="summary-price" style="color: #10B981; font-size: 1.2rem;"></strong></div>
                     <div class="summary-item"><span>Date:</span><strong id="summary-date"></strong></div>
                     <div class="summary-item"><span>Time:</span><strong id="summary-time"></strong></div>
-                    <button class="submit-btn" onclick="confirmBooking()">Confirm Booking at Norain</button>
+                    
+                    <div id="payment-box" class="payment-instructions">
+                        <h5>Advance NayaPay Verification</h5>
+                        <p>To confirm your slot, please send the exact amount to:</p>
+                        <div class="account-details">
+                            <p>Name: <strong>Muhammad Ahsam Khan</strong></p>
+                            <p>NayaPay No: <strong style="color: #10B981; font-size: 18px;">03152267614</strong></p>
+                        </div>
+                        
+                        <label class="upload-btn">
+                            📸 Upload Payment Screenshot
+                            <input type="file" id="payment-screenshot" accept="image/*" style="display: none;">
+                        </label>
+                        <p id="file-name" style="font-size: 13px; color: #10B981; margin-top: 8px; font-weight: bold;"></p>
+                    </div>
+
+                    <button class="submit-btn disabled-btn" id="confirm-btn" onclick="confirmBooking()" disabled>Submit Payment & Book</button>
+                    
+                    <button class="submit-btn" id="download-token-btn" style="display: none; background: #10B981;" onclick="downloadToken()">📥 Download Token Slip</button>
                 </div>
             </div>
         </div>
