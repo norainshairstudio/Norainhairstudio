@@ -22,8 +22,9 @@ if (accountSid !== 'your_twilio_account_sid' && authToken !== 'your_twilio_auth_
 const ADMIN_USERNAME = 'norainhairsalon';
 let ADMIN_PASSWORD_HASH = bcrypt.hashSync('norainadmin123', 10);
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// NAYA: Payload limit 10MB ki hai kyunke image Base64 format mein aayegi
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
 function parseCookies(req) {
@@ -60,7 +61,6 @@ app.use((req, res, next) => {
 let memoryAppointments = null;
 const APPOINTMENTS_FILE = path.join(process.cwd(), 'appointments.json');
 
-// Achanak chutti wali dates yahan save hongi
 let closedDates = []; 
 
 async function loadAppointments() {
@@ -84,7 +84,6 @@ async function saveAppointments(appointments) {
   }
 }
 
-// Routes
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'index.html')));
 app.get('/login', (req, res) => res.sendFile(path.join(__dirname, '..', 'public', 'login.html')));
 
@@ -121,7 +120,6 @@ app.post('/change-password', async (req, res) => {
 
 app.get('/api/appointments', async (req, res) => {
   const appointments = await loadAppointments();
-  // Humain frontend ko closed dates bhi batani hain
   res.json({ appointments: appointments, closedDates: closedDates });
 });
 
@@ -129,14 +127,18 @@ app.post('/api/appointments', async (req, res) => {
   const appointment = req.body;
   const appointments = await loadAppointments();
   
-  // Agar din pehle hi closed hai to reject karo
   if(closedDates.includes(appointment.date)) {
       return res.status(400).json({ success: false, message: "Day is closed" });
   }
 
+  // NAYA: Token Generate Karna
+  appointment.tokenId = String(appointments.length + 1).padStart(5, '0');
+
   appointments.unshift(appointment);
   await saveAppointments(appointments);
-  res.json({ success: true });
+  
+  // Frontend ko tokenId wapas bhejna taakay wo slip bana saky
+  res.json({ success: true, tokenId: appointment.tokenId });
 });
 
 app.put('/api/appointments/:id', async (req, res) => {
@@ -152,11 +154,10 @@ app.put('/api/appointments/:id', async (req, res) => {
   if (status === 'accepted') {
     appointments[index].acceptedAt = new Date().toISOString();
     if (twilioClient) {
-        const msg = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon is confirmed.\nService: ${appointments[index].service}\nDate: ${new Date(appointments[index].date).toLocaleDateString()}\nTime: ${appointments[index].time}`;
+        const msg = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon is confirmed. Token #${appointments[index].tokenId}\nService: ${appointments[index].service}\nDate: ${new Date(appointments[index].date).toLocaleDateString()}\nTime: ${appointments[index].time}`;
         twilioClient.messages.create({ body: msg, from: twilioWhatsAppNumber, to: `whatsapp:${appointments[index].phone}` }).catch(e=>console.log(e));
     }
   } else if (status === 'rejected') {
-       // Send rejection WhatsApp if needed
       if (twilioClient) {
         const msg = `Hello ${appointments[index].name}, your appointment at Norain Hair Salon has been cancelled/rejected. Please contact us for more info.`;
         twilioClient.messages.create({ body: msg, from: twilioWhatsAppNumber, to: `whatsapp:${appointments[index].phone}` }).catch(e=>console.log(e));
@@ -167,7 +168,6 @@ app.put('/api/appointments/:id', async (req, res) => {
   res.json({ success: true });
 });
 
-// API for Emergency Close Day
 app.post('/api/closedates', async (req, res) => {
     if (!req.adminAuthenticated) return res.status(401).json({ success: false });
     const { date } = req.body;
@@ -176,7 +176,6 @@ app.post('/api/closedates', async (req, res) => {
         closedDates.push(date);
     }
     
-    // Us din ki saari pending/accepted ko automatic reject kar do
     const appointments = await loadAppointments();
     let changed = false;
     appointments.forEach(app => {
@@ -187,10 +186,8 @@ app.post('/api/closedates', async (req, res) => {
     });
     
     if(changed) await saveAppointments(appointments);
-    
     res.json({ success: true, closedDates });
 });
-
 
 app.listen(PORT, () => console.log(`Server running at port ${PORT}`));
 module.exports = app;
