@@ -5,10 +5,29 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Login - Norain Hair Salon</title>
     <link rel="stylesheet" href="login.css">
+    <style>
+        /* Premium Logo Styling for Login Page */
+        .login-logo {
+            display: block;
+            margin: 0 auto 15px auto;
+            max-width: 120px; /* Desktop par size */
+            height: auto;
+            object-fit: contain;
+        }
+
+        /* Mobile screen ke liye logo ka size adjust */
+        @media (max-width: 768px) {
+            .login-logo {
+                max-width: 100px;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="login-container">
         <div class="login-card">
+            <img src="logo.png" alt="Norain Salon Logo" class="login-logo">
+            
             <h1>Norain Hair Salon</h1>
             <h2>Admin Dashboard</h2>
             <form id="login-form">
