@@ -49,7 +49,12 @@ function scrollToBooking() { document.getElementById('booking').scrollIntoView({
 
 window.addEventListener('scroll', () => {
     const navbar = document.getElementById('navbar');
-    navbar.style.background = window.scrollY > 100 ? 'rgba(0, 0, 0, 0.95)' : 'rgba(0, 0, 0, 0.9)';
+    // Using class toggle for better CSS control
+    if (window.scrollY > 100) {
+        navbar.classList.add('scrolled');
+    } else {
+        navbar.classList.remove('scrolled');
+    }
 });
 
 const workingHours = { start: 12, end: 22 };
@@ -73,7 +78,6 @@ async function fetchRealAppointments() {
             
             bookedSlotsData = {};
             appointments.forEach(app => {
-                // FIXED BUG: Pending request bhi ab slot block karegi, sirf rejected allow hogi!
                 if (app.status !== 'rejected') { 
                     if (!bookedSlotsData[app.date]) bookedSlotsData[app.date] = [];
                     bookedSlotsData[app.date].push(app.time);
@@ -172,7 +176,6 @@ function renderCalendar() {
             dayDiv.className += ' off disabled';
             dayDiv.innerHTML = day + '<span class="slot-indicator">OFF</span>';
         } else if (closedDaysData.includes(dateStr)) {
-            // FIXED: Emergency Holiday Logic
             dayDiv.className += ' booked disabled';
             dayDiv.innerHTML = day + '<span class="slot-indicator">CLOSED</span>';
         } else if (selectedService) {
