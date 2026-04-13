@@ -94,7 +94,7 @@ h1, h2, h3, h4 {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 85px;
+    height: 100px; /* Thori height barhai taakay bara logo fit ho sakay */
 }
 
 .logo {
@@ -103,9 +103,9 @@ h1, h2, h3, h4 {
     text-decoration: none;
 }
 
-/* Larger Logo Image */
+/* WEBSITE LOGO SIZE BARA KAR DIYA */
 .logo-img {
-    height: 65px; /* Increased from 45/60px */
+    height: 80px; /* Size 60px se 80px kar diya hai */
     width: auto;
     object-fit: contain;
 }
