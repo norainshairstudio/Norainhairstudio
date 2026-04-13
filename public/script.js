@@ -264,6 +264,7 @@ function initializeBooking() {
     renderCalendar();
 }
 
+// ----- UPDATED: ERROR HANDLING BEHTAR KI HAI -----
 async function confirmBooking() {
     const name = document.getElementById('name').value;
     const phone = document.getElementById('phone').value;
@@ -271,17 +272,56 @@ async function confirmBooking() {
     if (!name || !phone) return showToast('Please fill in your name and phone!', 'error');
     if (!selectedService || !selectedDate || !selectedTime) return showToast('Choose service, date & time!', 'error');
 
-    const appointment = { id: `appt-${Date.now()}`, name, phone, service: selectedService, date: selectedDate, time: selectedTime, status: 'pending', createdAt: new Date().toISOString() };
+    // Button ko disable karo taakay double click na ho
+    const btn = document.querySelector('.submit-btn');
+    btn.textContent = 'Sending...';
+    btn.disabled = true;
 
-    const res = await fetch('/api/appointments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(appointment) });
-    if (!res.ok) return showToast('Problem sending request.', 'error');
+    const appointment = { 
+        id: `appt-${Date.now()}`, 
+        name, 
+        phone, 
+        service: selectedService, 
+        date: selectedDate, 
+        time: selectedTime, 
+        status: 'pending', 
+        createdAt: new Date().toISOString() 
+    };
 
-    showToast('Booking sent! Norain Salon will confirm.', 'success');
-    selectedService = selectedDate = selectedTime = null;
-    document.querySelectorAll('input[name="service"]').forEach(el => el.checked = false);
-    document.getElementById('name').value = document.getElementById('phone').value = '';
-    document.getElementById('time-slots-container').style.display = document.getElementById('booking-summary').style.display = 'none';
-    fetchRealAppointments();
+    try {
+        const res = await fetch('/api/appointments', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify(appointment) 
+        });
+
+        if (!res.ok) {
+            // Error detailed check karega
+            const errorText = await res.text();
+            console.error("Backend Error:", errorText);
+            throw new Error(`Server Error ${res.status}`);
+        }
+
+        showToast('Booking sent! Norain Salon will confirm.', 'success');
+        
+        // Reset System
+        selectedService = selectedDate = selectedTime = null;
+        document.querySelectorAll('input[name="service"]').forEach(el => el.checked = false);
+        document.getElementById('name').value = '';
+        document.getElementById('phone').value = '';
+        document.getElementById('time-slots-container').style.display = 'none';
+        document.getElementById('booking-summary').style.display = 'none';
+        
+        fetchRealAppointments();
+
+    } catch (error) {
+        showToast('Problem sending request. Backend might be down or busy.', 'error');
+        console.error("Fetch Request Failed:", error);
+    } finally {
+        // Button ko wapis normal karo
+        btn.textContent = 'Confirm Booking at Norain';
+        btn.disabled = false;
+    }
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeBooking);
