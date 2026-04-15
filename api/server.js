@@ -3,8 +3,8 @@ const bcrypt = require('bcryptjs');
 const twilio = require('twilio');
 const path = require('path');
 const crypto = require('crypto');
-// NAYA: MongoDB se connect karne ke liye Mongoose
 const mongoose = require('mongoose'); 
+const nodemailer = require('nodemailer'); 
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -12,22 +12,23 @@ const SECRET = process.env.SESSION_SECRET || 'norain_secret_key';
 const AUTH_COOKIE = 'admin-auth';
 
 // --- MONGODB CONNECTION ---
-// Tera Cluster ka link password ke sath
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://norainshairstudio_db_user:ygLshEGpDv5rFekv@cluster0.p3tthdy.mongodb.net/norain_salon?retryWrites=true&w=majority&appName=Cluster0';
 
 mongoose.connect(MONGODB_URI)
   .then(() => console.log('✅ MongoDB Connected Successfully!'))
   .catch(err => console.error('❌ MongoDB Connection Error:', err));
 
-// --- MONGODB SCHEMAS (Database ka structure) ---
+// --- MONGODB SCHEMAS ---
 const appointmentSchema = new mongoose.Schema({
     id: String,
     name: String,
     phone: String,
+    email: String, // NAYA: Email Field
     service: String,
     price: Number,
     date: String,
     time: String,
+    displayTime: String,
     status: String,
     paymentImage: String,
     tokenId: String,
@@ -40,7 +41,17 @@ const closedDateSchema = new mongoose.Schema({
     date: String
 });
 const ClosedDate = mongoose.model('ClosedDate', closedDateSchema);
-// -----------------------------------------------
+
+// --- EMAIL TRANSPORTER SETUP (Spaceship/Titan Email) ---
+const transporter = nodemailer.createTransport({
+    host: 'smtp.titan.email', // Spaceship/Titan ka SMTP host
+    port: 465,
+    secure: true, // Port 465 ke liye true
+    auth: {
+        user: process.env.EMAIL_USER, // Vercel mein update karein: contact@norainhairstudio.com
+        pass: process.env.EMAIL_PASS  // Aapka email password
+    }
+});
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID || 'your_twilio_account_sid';
 const authToken = process.env.TWILIO_AUTH_TOKEN || 'your_twilio_auth_token';
@@ -124,11 +135,10 @@ app.post('/change-password', async (req, res) => {
   res.json({ success: true, message: 'Password changed. Please login again.' });
 });
 
-// --- API ROUTES FOR MONGODB ---
+// --- API ROUTES FOR MONGODB & EMAILS ---
 
 app.get('/api/appointments', async (req, res) => {
   try {
-      // DB se saari appointments lay kar aao
       const appointments = await Appointment.find().sort({ createdAt: -1 });
       const closedDatesDocs = await ClosedDate.find();
       const closedDates = closedDatesDocs.map(doc => doc.date);
@@ -143,19 +153,37 @@ app.post('/api/appointments', async (req, res) => {
   try {
       const appointmentData = req.body;
       
-      // Check agar date closed hai
       const closedDateExist = await ClosedDate.findOne({ date: appointmentData.date });
       if(closedDateExist) {
           return res.status(400).json({ success: false, message: "Day is closed" });
       }
 
-      // Automatically Token ID generate karo total count dekh kar
       const count = await Appointment.countDocuments();
       appointmentData.tokenId = String(count + 1).padStart(5, '0');
 
-      // Database mein save karo
       const newAppointment = new Appointment(appointmentData);
       await newAppointment.save();
+
+      // --- EMAIL 1: PENDING NOTIFICATION ---
+      if (appointmentData.email) {
+          const mailOptions = {
+              from: '"Norain Hair Studio" <contact@norainhairstudio.com>', // Yahan change kiya
+              to: appointmentData.email,
+              subject: 'Booking Request Received - Norain Hair Salon',
+              html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #e8e8e8; border-radius: 10px;">
+                  <h2 style="color: #c9a961; text-align: center;">Norain Hair Salon</h2>
+                  <p><strong>Hello ${appointmentData.name},</strong></p>
+                  <p>We have successfully received your booking request and payment screenshot.</p>
+                  <p>You will shortly receive a confirmation email containing your official <strong>Token Slip</strong> once our team verifies the payment.</p>
+                  <hr style="border: none; border-top: 1px solid #e8e8e8; margin: 20px 0;">
+                  <p style="color: #666;"><em>Hamein aapki booking request aur payment screenshot mil gayi hai. Verification ke baad aapko jald hi Token Slip ke sath confirmation email bhej di jayegi.</em></p>
+                  <p style="text-align: center; color: #999; font-size: 12px; margin-top: 30px;">© 2026 Norain Hair Salon. Powered by AnA Softechs.</p>
+              </div>
+              `
+          };
+          transporter.sendMail(mailOptions).catch(err => console.log("Email Send Error:", err));
+      }
       
       res.json({ success: true, tokenId: appointmentData.tokenId });
   } catch (error) {
@@ -178,6 +206,41 @@ app.put('/api/appointments/:id', async (req, res) => {
       
       if (status === 'accepted') {
         appointment.acceptedAt = new Date().toISOString();
+        
+        // --- EMAIL 2: CONFIRMED & VIP TOKEN SLIP ---
+        if (appointment.email) {
+            const formattedDate = new Date(appointment.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+            const mailOptions = {
+                from: '"Norain Hair Studio" <contact@norainhairstudio.com>', // Yahan change kiya
+                to: appointment.email,
+                subject: `Booking Confirmed! Token #${appointment.tokenId} - Norain Hair Salon`,
+                html: `
+                <div style="font-family: Arial, sans-serif; max-width: 500px; margin: auto; border: 2px solid #c9a961; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.1);">
+                    <div style="background: #1a1a1a; padding: 20px; text-align: center;">
+                        <h1 style="color: #c9a961; margin: 0; font-family: 'Playfair Display', serif;">NORAIN HAIR SALON</h1>
+                        <p style="color: #fff; margin: 5px 0 0 0;">Official Appointment Token</p>
+                    </div>
+                    <div style="padding: 30px; text-align: center;">
+                        <h2 style="font-size: 36px; margin: 0; color: #1a1a1a;">TOKEN: #${appointment.tokenId}</h2>
+                        <div style="text-align: left; margin-top: 30px; line-height: 1.8; color: #333; background: #fafaf8; padding: 20px; border-radius: 10px;">
+                            <p style="margin: 5px 0;"><strong>Name:</strong> ${appointment.name}</p>
+                            <p style="margin: 5px 0;"><strong>Service:</strong> ${appointment.service}</p>
+                            <p style="margin: 5px 0;"><strong>Date:</strong> ${formattedDate}</p>
+                            <p style="margin: 5px 0;"><strong>Time:</strong> ${appointment.displayTime || appointment.time}</p>
+                            <p style="margin: 5px 0;"><strong>Amount Paid:</strong> <span style="color: #10B981; font-weight: bold;">Rs. ${appointment.price}</span></p>
+                        </div>
+                        <div style="margin-top: 30px; padding: 15px; background: rgba(46, 204, 113, 0.1); border-radius: 8px; border: 1px solid #10B981;">
+                            <p style="margin: 0; color: #10B981; font-weight: bold; font-size: 18px;">STATUS: CONFIRMED ✅</p>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;">Please show this digital slip at the salon counter.</p>
+                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #666;"><em>Baraye meharbani salon counter par ye slip dikhayen.</em></p>
+                        </div>
+                    </div>
+                </div>
+                `
+            };
+            transporter.sendMail(mailOptions).catch(err => console.log("Token Email Send Error:", err));
+        }
+
         if (twilioClient) {
             const msg = `Hello ${appointment.name}, your appointment at Norain Hair Salon is confirmed. Token #${appointment.tokenId}\nService: ${appointment.service}\nDate: ${new Date(appointment.date).toLocaleDateString()}\nTime: ${appointment.time}`;
             twilioClient.messages.create({ body: msg, from: twilioWhatsAppNumber, to: `whatsapp:${appointment.phone}` }).catch(e=>console.log(e));
@@ -207,7 +270,6 @@ app.post('/api/closedates', async (req, res) => {
             await new ClosedDate({ date: date }).save();
         }
         
-        // Reject all pending/accepted for this date in MongoDB
         await Appointment.updateMany(
             { date: date, status: { $in: ['pending', 'accepted'] } },
             { $set: { status: 'rejected' } }
