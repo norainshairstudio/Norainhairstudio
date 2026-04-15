@@ -1,1 +1,12 @@
-[]
+[
+  {
+    "id": "test-appt-123",
+    "name": "Test User",
+    "phone": "+1234567890",
+    "service": "Hair Cutting",
+    "date": "2026-04-20",
+    "time": "15:00",
+    "status": "pending",
+    "createdAt": "2026-04-12T00:00:00Z"
+  }
+]
