@@ -59,7 +59,6 @@ window.addEventListener('scroll', () => {
 const workingHours = { start: 12, end: 22 };
 const services = { 'Hair Cutting': 30, 'Shave': 30, 'Hair Cutting + Shave': 60 };
 
-// NAYA: Services Pricing
 const prices = {
     'Hair Cutting': 400,
     'Shave': 300,
@@ -74,7 +73,6 @@ let selectedDate = null;
 let selectedTime = null;
 let selectedService = null;
 let paymentBase64 = null;
-let lastBookingData = null; // Token print karne ke liye
 
 async function fetchRealAppointments() {
     try {
@@ -253,14 +251,12 @@ function updateSummary() {
         document.getElementById('summary-date').textContent = new Date(d.getTime() + d.getTimezoneOffset() * 60000).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         document.getElementById('summary-time').textContent = document.querySelector('.time-slot.selected')?.textContent || selectedTime;
         
-        // Resetting Payment Box
         const confirmBtn = document.getElementById('confirm-btn');
         confirmBtn.disabled = true;
         confirmBtn.classList.add('disabled-btn');
         confirmBtn.style.display = 'block';
         
         document.getElementById('payment-box').style.display = 'block';
-        document.getElementById('download-token-btn').style.display = 'none';
         document.getElementById('file-name').textContent = '';
         paymentBase64 = null;
         document.getElementById('payment-screenshot').value = '';
@@ -269,7 +265,6 @@ function updateSummary() {
     }
 }
 
-// NAYA: File Upload Listener
 document.getElementById('payment-screenshot')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
@@ -308,8 +303,9 @@ function initializeBooking() {
 async function confirmBooking() {
     const name = document.getElementById('name').value;
     const phone = document.getElementById('phone').value;
+    const email = document.getElementById('email').value; // NAYA: Email field
 
-    if (!name || !phone) return showToast('Please fill in your name and phone!', 'error');
+    if (!name || !phone || !email) return showToast('Please fill in your name, phone, and email!', 'error');
     if (!selectedService || !selectedDate || !selectedTime) return showToast('Choose service, date & time!', 'error');
     if (!paymentBase64) return showToast('Please upload payment screenshot first!', 'error');
 
@@ -318,16 +314,20 @@ async function confirmBooking() {
     btn.disabled = true;
     btn.classList.add('disabled-btn');
 
+    const displayTime = document.querySelector('.time-slot.selected')?.textContent || selectedTime;
+
     const appointment = { 
         id: `appt-${Date.now()}`, 
         name, 
         phone, 
+        email, // Email added to payload
         service: selectedService,
         price: prices[selectedService],
         date: selectedDate, 
-        time: selectedTime, 
+        time: selectedTime,
+        displayTime: displayTime, 
         status: 'pending', 
-        paymentImage: paymentBase64, // Sending base64 image to server
+        paymentImage: paymentBase64, 
         createdAt: new Date().toISOString() 
     };
 
@@ -344,22 +344,17 @@ async function confirmBooking() {
             throw new Error(`Server Error ${res.status}`);
         }
 
-        const resData = await res.json();
-        showToast('Payment sent! Booking pending verification.', 'success');
+        // NAYA: Email ka wait karne ka message
+        showToast('Booking sent! Please check your email for updates.', 'success');
         
-        // Save for token printing
-        lastBookingData = { ...appointment, tokenId: resData.tokenId, displayTime: document.querySelector('.time-slot.selected')?.textContent };
-
-        // Hide payment box and submit btn, show download btn
         document.getElementById('payment-box').style.display = 'none';
         btn.style.display = 'none';
-        document.getElementById('download-token-btn').style.display = 'block';
 
-        // Clear forms
         selectedService = selectedDate = selectedTime = null;
         document.querySelectorAll('input[name="service"]').forEach(el => el.checked = false);
         document.getElementById('name').value = '';
         document.getElementById('phone').value = '';
+        document.getElementById('email').value = '';
         
         fetchRealAppointments();
 
@@ -370,79 +365,6 @@ async function confirmBooking() {
         btn.disabled = false;
         btn.classList.remove('disabled-btn');
     }
-}
-
-// NAYA: Token Generate & Download Logic
-function downloadToken() {
-    if (!lastBookingData) return;
-    
-    // Create a temporary canvas
-    const canvas = document.createElement('canvas');
-    canvas.width = 400;
-    canvas.height = 550;
-    const ctx = canvas.getContext('2d');
-    
-    // Background and Border
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.strokeStyle = '#c9a961';
-    ctx.lineWidth = 4;
-    ctx.strokeRect(10, 10, 380, 530);
-    
-    // Header
-    ctx.fillStyle = '#1a1a1a';
-    ctx.fillRect(12, 12, 376, 90);
-    
-    ctx.fillStyle = '#c9a961';
-    ctx.font = 'bold 26px "Playfair Display", serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('NORAIN HAIR SALON', 200, 55);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '14px Inter, sans-serif';
-    ctx.fillText('Official Appointment Token', 200, 80);
-    
-    // Token ID
-    ctx.fillStyle = '#1a1a1a';
-    ctx.font = 'bold 40px Inter, sans-serif';
-    ctx.fillText(`TOKEN: #${lastBookingData.tokenId}`, 200, 160);
-    
-    // Detail Labels
-    ctx.textAlign = 'left';
-    ctx.fillStyle = '#666666';
-    ctx.font = '16px Inter, sans-serif';
-    
-    let y = 230;
-    const details = [
-        `Name:  ${lastBookingData.name}`,
-        `Phone:  ${lastBookingData.phone}`,
-        `Service:  ${lastBookingData.service}`,
-        `Amount Paid:  Rs. ${lastBookingData.price}`,
-        `Date:  ${new Date(lastBookingData.date).toLocaleDateString()}`,
-        `Time:  ${lastBookingData.displayTime}`
-    ];
-    
-    details.forEach(text => {
-        ctx.fillStyle = text.includes('Amount') ? '#10B981' : '#333333';
-        ctx.fillText(text, 40, y);
-        y += 40;
-    });
-    
-    // Footer / Status
-    ctx.textAlign = 'center';
-    ctx.fillStyle = '#e74c3c'; // Pending color
-    ctx.font = 'bold 20px Inter, sans-serif';
-    ctx.fillText('STATUS: PENDING VERIFICATION', 200, 485);
-    
-    ctx.fillStyle = '#c9a961';
-    ctx.font = '12px Inter, sans-serif';
-    ctx.fillText('Please show this slip at the salon counter.', 200, 515);
-    
-    // Trigger the Download
-    const link = document.createElement('a');
-    link.download = `Norain_Token_${lastBookingData.tokenId}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
 }
 
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initializeBooking);
